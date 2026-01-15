@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
-import { AlertCircle, MoreVertical, CheckCircle, XCircle } from "lucide-react"
+import { AlertCircle, MoreVertical, CheckCircle, XCircle, Download } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -33,6 +33,7 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDownloading, setIsDownloading] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [toggleDialogOpen, setToggleDialogOpen] = useState(false)
   const [userToToggle, setUserToToggle] = useState<User | null>(null)
@@ -125,13 +126,78 @@ export default function UsersPage() {
       user.phone.includes(searchQuery),
   )
 
+  const escapeCsvValue = (value: unknown) => {
+    if (value === null || value === undefined) return ""
+    const str = typeof value === "string" ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : JSON.stringify(value)
+    const escaped = str.replace(/\r\n|\r|\n/g, " ").replace(/"/g, '""')
+    return `"${escaped}"`
+  }
+
+  const downloadCsv = () => {
+    if (users.length === 0) return
+
+    setIsDownloading(true)
+    try {
+      const rows = users as unknown as Array<Record<string, unknown>>
+
+      const preferred = ["id", "name", "email", "phone", "address", "addressCount", "isActive", "createdAt"]
+      const keys = new Set<string>()
+      rows.forEach((r) => Object.keys(r || {}).forEach((k) => keys.add(k)))
+
+      const otherKeys = Array.from(keys)
+        .filter((k) => !preferred.includes(k))
+        .sort((a, b) => a.localeCompare(b))
+
+      const headers = [...preferred.filter((k) => keys.has(k)), ...otherKeys]
+
+      const csv = [
+        headers.map(escapeCsvValue).join(","),
+        ...rows.map((r) => headers.map((h) => escapeCsvValue(r?.[h])).join(",")),
+      ].join("\n")
+
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      toast({
+        title: "Success",
+        description: "Users CSV downloaded successfully",
+      })
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to download CSV",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDownloading(false)
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">User Management</h1>
-          <p className="text-muted-foreground mt-2">Manage user accounts and access</p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">User Management</h1>
+            <p className="text-muted-foreground mt-2">Manage user accounts and access</p>
+          </div>
+          <Button
+            variant="outline"
+            className="gap-2 w-full sm:w-auto"
+            onClick={downloadCsv}
+            disabled={isLoading || isDownloading || users.length === 0}
+          >
+            <Download className="w-4 h-4" />
+            {isDownloading ? "Preparing..." : "Download CSV"}
+          </Button>
         </div>
 
         {/* Search */}

@@ -19,6 +19,7 @@ interface Order {
   _id: string
   orderId: string
   userId: string
+  timing?: string
   address: {
     name: string
     phone: string
@@ -102,6 +103,11 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
   }
 
   const remainingAmount = order.totalAmount - order.totalPaid
+  const timing =
+    (order as unknown as { timing?: unknown; deliveryTiming?: unknown; slot?: unknown }).timing ??
+    (order as unknown as { timing?: unknown; deliveryTiming?: unknown; slot?: unknown }).deliveryTiming ??
+    (order as unknown as { timing?: unknown; deliveryTiming?: unknown; slot?: unknown }).slot
+  const timingLabel = typeof timing === "string" ? timing : ""
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -119,7 +125,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
               {copiedId ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </Button>
           </DialogTitle>
-          <DialogDescription>Placed on {new Date(order.createdAt).toLocaleDateString()}</DialogDescription>
+          <DialogDescription>Placed on {new Date(order.createdAt).toLocaleString()}</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -138,7 +144,16 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
               <div>
                 <p className="text-xs text-muted-foreground">Shipping Address</p>
                 <p className="font-medium text-sm">{order.address.address}</p>
+                <p className="text-sm text-muted-foreground">
+                  {[order.address.city, order.address.state, order.address.pincode].filter(Boolean).join(", ")}
+                </p>
               </div>
+              {timingLabel && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Timing</p>
+                  <p className="font-medium text-sm">{timingLabel}</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -167,8 +182,12 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
             <h3 className="font-semibold text-sm">Payment Information</h3>
             <div className="space-y-2">
               <div className="flex justify-between p-3 bg-secondary/30 rounded-lg">
-                <span className="text-sm">Payment Method</span>
+                <span className="text-sm">Payment Mode</span>
                 <span className="font-medium text-sm">{order.paymentMethod}</span>
+              </div>
+              <div className="flex justify-between p-3 bg-secondary/30 rounded-lg">
+                <span className="text-sm">Payment Status</span>
+                <span className="font-medium text-sm">{order.paymentStatus}</span>
               </div>
               <div className="flex justify-between p-3 bg-secondary/30 rounded-lg">
                 <span className="text-sm">Total Amount</span>

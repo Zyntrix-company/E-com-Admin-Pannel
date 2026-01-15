@@ -15,6 +15,7 @@ interface Order {
   _id: string
   orderId: string
   userId: string
+  timing?: string
   address: {
     name: string
     phone: string
@@ -144,6 +145,13 @@ export default function OrdersPage() {
     return str.charAt(0).toUpperCase() + str.slice(1)
   }
 
+  const getTiming = (order: Order) => {
+    const raw = (order as unknown as { timing?: unknown; deliveryTiming?: unknown; slot?: unknown }).timing ??
+      (order as unknown as { timing?: unknown; deliveryTiming?: unknown; slot?: unknown }).deliveryTiming ??
+      (order as unknown as { timing?: unknown; deliveryTiming?: unknown; slot?: unknown }).slot
+    return typeof raw === "string" ? raw : ""
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -248,9 +256,14 @@ export default function OrdersPage() {
                     <tr className="border-b border-border">
                       <th className="text-left py-3 px-4 font-medium text-sm">Order ID</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Customer</th>
+                      <th className="hidden lg:table-cell text-left py-3 px-4 font-medium text-sm">Address</th>
+                      <th className="hidden md:table-cell text-left py-3 px-4 font-medium text-sm">City</th>
+                      <th className="hidden xl:table-cell text-left py-3 px-4 font-medium text-sm">Timing</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Date</th>
                       <th className="text-right py-3 px-4 font-medium text-sm">Amount</th>
-                      <th className="text-center py-3 px-4 font-medium text-sm">Payment</th>
+                      <th className="hidden md:table-cell text-right py-3 px-4 font-medium text-sm">Paid</th>
+                      <th className="hidden md:table-cell text-center py-3 px-4 font-medium text-sm">Payment Mode</th>
+                      <th className="text-center py-3 px-4 font-medium text-sm">Payment Status</th>
                       <th className="text-center py-3 px-4 font-medium text-sm">Status</th>
                       <th className="text-right py-3 px-4 font-medium text-sm">Actions</th>
                     </tr>
@@ -274,10 +287,25 @@ export default function OrdersPage() {
                             <p className="text-xs text-muted-foreground">{order.address?.phone || 'N/A'}</p>
                           </div>
                         </td>
+                        <td className="hidden lg:table-cell py-4 px-4 text-sm text-muted-foreground">
+                          {order.address?.address || "-"}
+                        </td>
+                        <td className="hidden md:table-cell py-4 px-4 text-sm text-muted-foreground">
+                          {order.address?.city || "-"}
+                        </td>
+                        <td className="hidden xl:table-cell py-4 px-4 text-sm text-muted-foreground">
+                          {getTiming(order) || "-"}
+                        </td>
                         <td className="py-4 px-4 text-sm text-muted-foreground">
                           {new Date(order.createdAt).toLocaleDateString()}
                         </td>
                         <td className="py-4 px-4 text-right font-semibold">₹{order.totalAmount.toLocaleString()}</td>
+                        <td className="hidden md:table-cell py-4 px-4 text-right font-semibold">
+                          ₹{(typeof order.totalPaid === "number" ? order.totalPaid : 0).toLocaleString()}
+                        </td>
+                        <td className="hidden md:table-cell py-4 px-4 text-center text-sm text-muted-foreground">
+                          {order.paymentMethod || "-"}
+                        </td>
                         <td className="py-4 px-4 text-center">
                           <span
                             className={`text-xs font-medium px-2 py-1 rounded inline-block ${

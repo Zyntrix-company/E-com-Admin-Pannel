@@ -1,0 +1,840 @@
+"use client"
+
+import type React from "react"
+
+import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
+import { AdminLayout } from "@/components/admin-layout"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { useToast } from "@/hooks/use-toast"
+import { axiosInstance } from "@/lib/axios"
+import { Plus, X } from "lucide-react"
+
+type Variant = { label: string; price: number; mrp: number; quantity: number }
+
+type Faq = { question: string; answer: string }
+
+type FormState = {
+  name: string
+  description: string
+  category: string
+  mrp: number
+  sellingPrice: number
+  variants: Variant[]
+  highlights: string[]
+  packOf: number
+  asin: string
+  sku: string
+  flavor: string
+  ingredients: string
+  usageTiming: string
+  rating: number
+  reviewCount: number
+  faqs: Faq[]
+}
+
+export default function NewProductPage() {
+  const router = useRouter()
+  const { toast } = useToast()
+
+  const [formData, setFormData] = useState<FormState>({
+    name: "",
+    description: "",
+    category: "",
+    mrp: 0,
+    sellingPrice: 0,
+    variants: [{ label: "", price: 0, mrp: 0, quantity: 0 }],
+    highlights: [""],
+    packOf: 1,
+    asin: "",
+    sku: "",
+    flavor: "",
+    ingredients: "",
+    usageTiming: "",
+    rating: 0,
+    reviewCount: 0,
+    faqs: [{ question: "", answer: "" }],
+  })
+
+  const [images, setImages] = useState<string[]>([])
+  const [videos, setVideos] = useState<string[]>([])
+  const [activeMediaIndex, setActiveMediaIndex] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    window.scrollTo(0, 0)
+  }, [])
+
+  const readFileAsDataUrl = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(String(reader.result))
+      reader.onerror = () => reject(new Error("Failed to read file"))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleImagesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    try {
+      const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
+      setImages((prev) => [...prev, ...next])
+      e.target.value = ""
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process images",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleVideoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    try {
+      const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
+      setVideos((prev) => [...prev, ...next])
+      e.target.value = ""
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process video",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleAddVariant = () => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: [...prev.variants, { label: "", price: 0, mrp: 0, quantity: 0 }],
+    }))
+  }
+
+  const handleRemoveVariant = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, i) => i !== index),
+    }))
+  }
+
+  const handleVariantChange = (index: number, field: keyof Variant, value: string | number) => {
+    setFormData((prev) => {
+      const nextVariants = [...prev.variants]
+      nextVariants[index] = { ...nextVariants[index], [field]: value } as Variant
+      return { ...prev, variants: nextVariants }
+    })
+  }
+
+  const handleAddHighlight = () => {
+    setFormData((prev) => ({ ...prev, highlights: [...prev.highlights, ""] }))
+  }
+
+  const handleRemoveHighlight = (index: number) => {
+    setFormData((prev) => ({ ...prev, highlights: prev.highlights.filter((_, i) => i !== index) }))
+  }
+
+  const handleHighlightChange = (index: number, value: string) => {
+    setFormData((prev) => {
+      const next = [...prev.highlights]
+      next[index] = value
+      return { ...prev, highlights: next }
+    })
+  }
+
+  const handleAddFaq = () => {
+    setFormData((prev) => ({ ...prev, faqs: [...prev.faqs, { question: "", answer: "" }] }))
+  }
+
+  const handleRemoveFaq = (index: number) => {
+    setFormData((prev) => ({ ...prev, faqs: prev.faqs.filter((_, i) => i !== index) }))
+  }
+
+  const handleFaqChange = (index: number, field: keyof Faq, value: string) => {
+    setFormData((prev) => {
+      const next = [...prev.faqs]
+      next[index] = { ...next[index], [field]: value }
+      return { ...prev, faqs: next }
+    })
+  }
+
+  const preview = useMemo(() => {
+    const cleanHighlights = formData.highlights.map((h) => h.trim()).filter(Boolean)
+    const cleanFaqs = formData.faqs
+      .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
+      .filter((f) => f.question || f.answer)
+
+    const media = [
+      ...images.map((src) => ({ type: "image" as const, src })),
+      ...videos.map((src) => ({ type: "video" as const, src })),
+    ]
+
+    return {
+      title: formData.name,
+      category: formData.category,
+      price: formData.sellingPrice,
+      mrp: formData.mrp,
+      description: formData.description,
+      highlights: cleanHighlights,
+      faqs: cleanFaqs,
+      images,
+      videos,
+      media,
+      rating: formData.rating,
+      reviewCount: formData.reviewCount,
+      packOf: formData.packOf,
+      asin: formData.asin,
+      sku: formData.sku,
+      flavor: formData.flavor,
+      ingredients: formData.ingredients,
+      usageTiming: formData.usageTiming,
+      variants: formData.variants,
+    }
+  }, [formData, images, videos])
+
+  useEffect(() => {
+    setActiveMediaIndex((prev) => {
+      const max = Math.max(0, preview.media.length - 1)
+      return Math.min(prev, max)
+    })
+  }, [preview.media.length])
+
+  const submitWithFallback = async (payload: Record<string, unknown>) => {
+    try {
+      await axiosInstance.post("/admin/products", payload)
+      return { ok: true as const, usedFallback: false as const }
+    } catch (error) {
+      const minimal = {
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        mrp: formData.mrp,
+        sellingPrice: formData.sellingPrice,
+        variants: formData.variants,
+        images,
+        isAvailable: true,
+      }
+
+      try {
+        await axiosInstance.post("/admin/products", minimal)
+        return { ok: true as const, usedFallback: true as const }
+      } catch (secondError) {
+        throw secondError
+      }
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!formData.name.trim()) {
+      toast({ title: "Error", description: "Product title is required", variant: "destructive" })
+      return
+    }
+
+    if (formData.name.length > 200) {
+      toast({ title: "Error", description: "Product title must be within 200 characters", variant: "destructive" })
+      return
+    }
+
+    if (!formData.category.trim()) {
+      toast({ title: "Error", description: "Category is required", variant: "destructive" })
+      return
+    }
+
+    if (!formData.description.trim()) {
+      toast({ title: "Error", description: "Description is required", variant: "destructive" })
+      return
+    }
+
+    if (formData.variants.length === 0) {
+      toast({ title: "Error", description: "At least 1 variant is required", variant: "destructive" })
+      return
+    }
+
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      category: formData.category,
+      mrp: formData.mrp,
+      sellingPrice: formData.sellingPrice,
+      variants: formData.variants,
+      images,
+      isAvailable: true,
+      highlights: formData.highlights.map((h) => h.trim()).filter(Boolean),
+      packOf: formData.packOf,
+      asin: formData.asin.trim() || undefined,
+      sku: formData.sku.trim() || undefined,
+      flavor: formData.flavor.trim() || undefined,
+      ingredients: formData.ingredients.trim() || undefined,
+      usageTiming: formData.usageTiming.trim() || undefined,
+      rating: formData.rating || undefined,
+      reviewCount: formData.reviewCount || undefined,
+      faqs: formData.faqs
+        .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
+        .filter((f) => f.question || f.answer),
+      videos: videos.length > 0 ? videos : undefined,
+      video: videos[0] || undefined,
+    }
+
+    setIsLoading(true)
+    try {
+      const result = await submitWithFallback(payload)
+
+      toast({
+        title: "Success",
+        description: result.usedFallback
+          ? "Product created (some extra fields may not be supported by the API yet)"
+          : "Product created successfully",
+      })
+
+      router.push("/products")
+    } catch (error) {
+      const message =
+        typeof error === "object" && error && "response" in error
+          ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+          : undefined
+
+      toast({
+        title: "Error",
+        description: message || (error instanceof Error ? error.message : "Failed to create product"),
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <AdminLayout>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Add Product</h1>
+            <p className="text-muted-foreground mt-2">Create a new product and preview it in real time</p>
+          </div>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => router.push("/products")}>
+              Back
+            </Button>
+            <Button className="w-full sm:w-auto bg-primary hover:bg-primary/90" form="new-product-form" type="submit" disabled={isLoading}>
+              {isLoading ? "Saving..." : "Save Product"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="lg:sticky lg:top-6 h-fit">
+            <CardHeader>
+              <CardTitle>Product Details</CardTitle>
+              <CardDescription>Fill all required fields (left) and see the preview (right)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form id="new-product-form" onSubmit={handleSubmit} className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Product Title (max 200 chars)</label>
+                    <Input
+                      value={formData.name}
+                      onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="Enter product title"
+                      maxLength={200}
+                      required
+                    />
+                    <div className="text-xs text-muted-foreground mt-1">{formData.name.length}/200</div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Category</label>
+                    <Input
+                      value={formData.category}
+                      onChange={(e) => setFormData((p) => ({ ...p, category: e.target.value }))}
+                      placeholder="e.g., Herbal, Oils, Powders"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData((p) => ({ ...p, description: e.target.value }))}
+                      placeholder="Product description"
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none"
+                      rows={6}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium block mb-2">MRP</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={formData.mrp}
+                        onChange={(e) => setFormData((p) => ({ ...p, mrp: Number.parseFloat(e.target.value) || 0 }))}
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Selling Price</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={formData.sellingPrice}
+                        onChange={(e) =>
+                          setFormData((p) => ({ ...p, sellingPrice: Number.parseFloat(e.target.value) || 0 }))
+                        }
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium block mb-2">ASIN Number</label>
+                      <Input
+                        value={formData.asin}
+                        onChange={(e) => setFormData((p) => ({ ...p, asin: e.target.value }))}
+                        placeholder="ASIN"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Unique Number (SKU)</label>
+                      <Input
+                        value={formData.sku}
+                        onChange={(e) => setFormData((p) => ({ ...p, sku: e.target.value }))}
+                        placeholder="SKU / Unique ID"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Flavor</label>
+                      <Input
+                        value={formData.flavor}
+                        onChange={(e) => setFormData((p) => ({ ...p, flavor: e.target.value }))}
+                        placeholder="Flavor"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Usage Timing</label>
+                      <Input
+                        value={formData.usageTiming}
+                        onChange={(e) => setFormData((p) => ({ ...p, usageTiming: e.target.value }))}
+                        placeholder="e.g., Morning / Night"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Ingredients</label>
+                    <textarea
+                      value={formData.ingredients}
+                      onChange={(e) => setFormData((p) => ({ ...p, ingredients: e.target.value }))}
+                      placeholder="Ingredients"
+                      className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Rating</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        value={formData.rating}
+                        onChange={(e) => setFormData((p) => ({ ...p, rating: Number.parseFloat(e.target.value) || 0 }))}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Review Count</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={formData.reviewCount}
+                        onChange={(e) => setFormData((p) => ({ ...p, reviewCount: Number.parseInt(e.target.value) || 0 }))}
+                        placeholder="0"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Pack Of</label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={formData.packOf}
+                        onChange={(e) => setFormData((p) => ({ ...p, packOf: Number.parseInt(e.target.value) || 1 }))}
+                        placeholder="1"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Images</label>
+                      <Input type="file" accept="image/*" multiple onChange={handleImagesChange} />
+                    </div>
+                  </div>
+
+                  {images.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {images.map((src, index) => (
+                        <div key={`${src}-${index}`} className="relative border border-border rounded-md overflow-hidden">
+                          <img src={src} alt={`Product image ${index + 1}`} className="w-full h-28 object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
+                            className="absolute top-1 right-1 p-1 rounded bg-background/80 hover:bg-background"
+                            aria-label="Remove image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="text-sm font-medium block mb-2">Video Upload (optional)</label>
+                    <Input type="file" accept="video/*" multiple onChange={handleVideoChange} />
+                    {videos.length > 0 && (
+                      <div className="mt-3 space-y-3">
+                        {videos.map((src, index) => (
+                          <div key={`${src}-${index}`} className="relative border border-border rounded-md overflow-hidden">
+                            <video src={src} controls className="w-full h-44 object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => setVideos((prev) => prev.filter((_, i) => i !== index))}
+                              className="absolute top-2 right-2 p-2 rounded bg-background/80 hover:bg-background"
+                              aria-label="Remove video"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Product Highlights</CardTitle>
+                    <CardDescription>Add bullet points shown on product page</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {formData.highlights.map((h, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          value={h}
+                          onChange={(e) => handleHighlightChange(index, e.target.value)}
+                          placeholder={`Highlight ${index + 1}`}
+                        />
+                        {formData.highlights.length > 1 && (
+                          <Button type="button" variant="outline" onClick={() => handleRemoveHighlight(index)}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button type="button" variant="outline" className="gap-2" onClick={handleAddHighlight}>
+                      <Plus className="w-4 h-4" />
+                      Add Highlight
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Variants</CardTitle>
+                    <CardDescription>Add pricing and quantity variants</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {formData.variants.map((variant, index) => (
+                      <div key={index} className="p-4 border border-border rounded-lg space-y-3 bg-secondary/5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Label</label>
+                              <Input
+                                value={variant.label}
+                                onChange={(e) => handleVariantChange(index, "label", e.target.value)}
+                                placeholder="e.g., 1kg"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Price</label>
+                              <Input
+                                type="number"
+                                value={variant.price}
+                                onChange={(e) => handleVariantChange(index, "price", Number.parseFloat(e.target.value) || 0)}
+                                placeholder="0"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">MRP</label>
+                              <Input
+                                type="number"
+                                value={variant.mrp}
+                                onChange={(e) => handleVariantChange(index, "mrp", Number.parseFloat(e.target.value) || 0)}
+                                placeholder="0"
+                                required
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Quantity</label>
+                              <Input
+                                type="number"
+                                value={variant.quantity}
+                                onChange={(e) => handleVariantChange(index, "quantity", Number.parseInt(e.target.value) || 0)}
+                                placeholder="0"
+                                required
+                              />
+                            </div>
+                          </div>
+                          {formData.variants.length > 1 && (
+                            <Button type="button" variant="outline" onClick={() => handleRemoveVariant(index)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <Button type="button" variant="outline" className="gap-2" onClick={handleAddVariant}>
+                      <Plus className="w-4 h-4" />
+                      Add Variant
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">FAQs</CardTitle>
+                    <CardDescription>Add different FAQs for this product</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {formData.faqs.map((faq, index) => (
+                      <div key={index} className="p-4 border border-border rounded-lg space-y-3 bg-secondary/5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 space-y-3">
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Question</label>
+                              <Input
+                                value={faq.question}
+                                onChange={(e) => handleFaqChange(index, "question", e.target.value)}
+                                placeholder="FAQ question"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium block mb-1">Answer</label>
+                              <textarea
+                                value={faq.answer}
+                                onChange={(e) => handleFaqChange(index, "answer", e.target.value)}
+                                placeholder="FAQ answer"
+                                className="w-full px-3 py-2 border border-border rounded-md text-sm resize-none"
+                                rows={3}
+                              />
+                            </div>
+                          </div>
+                          {formData.faqs.length > 1 && (
+                            <Button type="button" variant="outline" onClick={() => handleRemoveFaq(index)}>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+
+                    <Button type="button" variant="outline" className="gap-2" onClick={handleAddFaq}>
+                      <Plus className="w-4 h-4" />
+                      Add FAQ
+                    </Button>
+                  </CardContent>
+                </Card>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Preview</CardTitle>
+              <CardDescription>How your product will appear to customers</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="border border-border rounded-lg overflow-hidden bg-background">
+                  {preview.media.length === 0 ? (
+                    <div className="w-full h-56 bg-secondary/30 flex items-center justify-center text-sm text-muted-foreground">
+                      No media
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      {preview.media[activeMediaIndex]?.type === "video" ? (
+                        <video src={preview.media[activeMediaIndex]?.src} controls className="w-full h-56 object-cover" />
+                      ) : (
+                        <img
+                          src={preview.media[activeMediaIndex]?.src}
+                          alt={preview.title || "Product"}
+                          className="w-full h-56 object-cover"
+                        />
+                      )}
+
+                      {preview.media.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center"
+                            onClick={() =>
+                              setActiveMediaIndex((prev) => (prev - 1 + preview.media.length) % preview.media.length)
+                            }
+                            aria-label="Previous"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center"
+                            onClick={() => setActiveMediaIndex((prev) => (prev + 1) % preview.media.length)}
+                            aria-label="Next"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {preview.media.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 py-3">
+                      {preview.media.map((m, i) => (
+                        <button
+                          key={`${m.type}-${m.src}-${i}`}
+                          type="button"
+                          aria-label={`Go to ${m.type} ${i + 1}`}
+                          onClick={() => setActiveMediaIndex(i)}
+                          className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                            i === activeMediaIndex ? "bg-primary" : "bg-border hover:bg-muted-foreground/40"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-sm text-muted-foreground">{preview.category || "Category"}</div>
+                  <div className="text-xl font-semibold break-words">{preview.title || "Product title"}</div>
+                  <div className="flex items-baseline gap-2">
+                    <div className="text-2xl font-bold text-primary">₹{Number(preview.price || 0).toLocaleString()}</div>
+                    <div className="text-sm text-muted-foreground line-through">₹{Number(preview.mrp || 0).toLocaleString()}</div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Rating: {preview.rating || 0} / 5 ({preview.reviewCount || 0} reviews)
+                  </div>
+                  <div className="text-sm text-muted-foreground">Pack of: {preview.packOf || 1}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Images: {preview.images.length} | Videos: {preview.videos.length}
+                  </div>
+                  {(preview.asin || preview.sku) && (
+                    <div className="text-xs text-muted-foreground">
+                      {preview.asin ? `ASIN: ${preview.asin}` : ""}
+                      {preview.asin && preview.sku ? " | " : ""}
+                      {preview.sku ? `SKU: ${preview.sku}` : ""}
+                    </div>
+                  )}
+                  {(preview.flavor || preview.usageTiming) && (
+                    <div className="text-xs text-muted-foreground">
+                      {preview.flavor ? `Flavor: ${preview.flavor}` : ""}
+                      {preview.flavor && preview.usageTiming ? " | " : ""}
+                      {preview.usageTiming ? `Usage: ${preview.usageTiming}` : ""}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium mb-2">Description</div>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap">{preview.description || "-"}</div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium mb-2">Highlights</div>
+                {preview.highlights.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">-</div>
+                ) : (
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                    {preview.highlights.map((h, i) => (
+                      <li key={`${h}-${i}`}>{h}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <div>
+                <div className="text-sm font-medium mb-2">Ingredients</div>
+                <div className="text-sm text-muted-foreground whitespace-pre-wrap">{preview.ingredients || "-"}</div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium mb-2">Variants</div>
+                {preview.variants.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">-</div>
+                ) : (
+                  <div className="space-y-2">
+                    {preview.variants.map((v, i) => (
+                      <div key={`${v.label}-${i}`} className="border border-border rounded-md p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="text-sm font-medium">{v.label || `Variant ${i + 1}`}</div>
+                          <div className="text-sm text-muted-foreground">
+                            Qty: {Number(v.quantity || 0).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          Price: ₹{Number(v.price || 0).toLocaleString()} | MRP: ₹{Number(v.mrp || 0).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-sm font-medium mb-2">FAQs</div>
+                {preview.faqs.length === 0 ? (
+                  <div className="text-sm text-muted-foreground">-</div>
+                ) : (
+                  <div className="space-y-3">
+                    {preview.faqs.map((f, i) => (
+                      <div key={`${f.question}-${i}`} className="border border-border rounded-md p-3">
+                        <div className="text-sm font-medium">{f.question || "Question"}</div>
+                        <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{f.answer || "Answer"}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </AdminLayout>
+  )
+}

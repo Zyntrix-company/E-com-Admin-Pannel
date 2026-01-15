@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AdminLayout } from "@/components/admin-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -25,10 +26,21 @@ interface Product {
   category: string
   description?: string
   images?: string[]
+  videos?: string[]
   mrp?: number
   sellingPrice?: number
   variants: Array<{ label: string; price: number; mrp: number; quantity: number }>
   isAvailable: boolean
+  highlights?: string[]
+  packOf?: number
+  asin?: string
+  sku?: string
+  flavor?: string
+  ingredients?: string
+  usageTiming?: string
+  rating?: number
+  reviewCount?: number
+  faqs?: Array<{ question: string; answer: string }>
 }
 
 export default function ProductsPage() {
@@ -38,10 +50,12 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false)
   const [detailsProduct, setDetailsProduct] = useState<Product | null>(null)
+  const [detailsMediaIndex, setDetailsMediaIndex] = useState(0)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const { toast } = useToast()
+  const router = useRouter()
 
   const normalizeProduct = (raw: unknown): Product => {
     const obj = raw as Record<string, unknown>
@@ -57,6 +71,36 @@ export default function ProductsPage() {
       ? (obj.variants as Array<{ label: string; price: number; mrp: number; quantity: number }>)
       : []
 
+    const videos = Array.isArray(obj.videos)
+      ? (obj.videos as string[])
+      : typeof obj.video === "string"
+        ? [obj.video]
+        : []
+
+    const highlights = Array.isArray(obj.highlights)
+      ? (obj.highlights as string[])
+      : typeof obj.highlights === "string"
+        ? [obj.highlights]
+        : Array.isArray(obj.productHighlights)
+          ? (obj.productHighlights as string[])
+          : []
+
+    const packOfRaw = (obj.packOf ?? obj.packoff ?? obj.packOff) as unknown
+    const packOf = typeof packOfRaw === "number" ? packOfRaw : typeof packOfRaw === "string" ? Number(packOfRaw) : undefined
+
+    const ratingRaw = (obj.rating ?? obj.ratings) as unknown
+    const rating = typeof ratingRaw === "number" ? ratingRaw : typeof ratingRaw === "string" ? Number(ratingRaw) : undefined
+
+    const reviewCountRaw = (obj.reviewCount ?? obj.reviewsCount ?? obj.totalReviews) as unknown
+    const reviewCount =
+      typeof reviewCountRaw === "number" ? reviewCountRaw : typeof reviewCountRaw === "string" ? Number(reviewCountRaw) : undefined
+
+    const faqs = Array.isArray(obj.faqs)
+      ? (obj.faqs as Array<{ question: string; answer: string }>).filter(
+          (f) => f && typeof f === "object" && typeof (f as any).question === "string" && typeof (f as any).answer === "string",
+        )
+      : []
+
     const isAvailable =
       typeof obj.isAvailable === "boolean"
         ? (obj.isAvailable as boolean)
@@ -70,12 +114,30 @@ export default function ProductsPage() {
       description: typeof obj.description === "string" ? obj.description : undefined,
       category: typeof obj.category === "string" ? obj.category : "",
       images,
+      videos,
       mrp: typeof obj.mrp === "number" ? obj.mrp : undefined,
       sellingPrice: typeof obj.sellingPrice === "number" ? obj.sellingPrice : undefined,
       variants,
       isAvailable,
+      highlights,
+      packOf: typeof packOf === "number" && Number.isFinite(packOf) ? packOf : undefined,
+      asin: typeof (obj.asin ?? obj.ASIN) === "string" ? String(obj.asin ?? obj.ASIN) : undefined,
+      sku: typeof (obj.sku ?? obj.uniqueNumber ?? obj.uniqueId) === "string" ? String(obj.sku ?? obj.uniqueNumber ?? obj.uniqueId) : undefined,
+      flavor: typeof obj.flavor === "string" ? obj.flavor : undefined,
+      ingredients: typeof obj.ingredients === "string" ? obj.ingredients : undefined,
+      usageTiming: typeof (obj.usageTiming ?? obj.usage_time) === "string" ? String(obj.usageTiming ?? obj.usage_time) : undefined,
+      rating: typeof rating === "number" && Number.isFinite(rating) ? rating : undefined,
+      reviewCount: typeof reviewCount === "number" && Number.isFinite(reviewCount) ? reviewCount : undefined,
+      faqs,
     }
   }
+
+  type DetailsMediaItem = { type: "image" | "video"; src: string }
+
+const detailsMedia: DetailsMediaItem[] = [
+  ...(detailsProduct?.images ?? []).map((src) => ({ type: "image" as const, src })),
+  ...(detailsProduct?.videos ?? []).map((src) => ({ type: "video" as const, src })),
+]
 
   const fetchProducts = async () => {
     try {
@@ -161,18 +223,12 @@ export default function ProductsPage() {
     <AdminLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Products</h1>
             <p className="text-muted-foreground mt-2">Manage your product catalog</p>
           </div>
-          <Button
-            className="bg-primary hover:bg-primary/90 gap-2"
-            onClick={() => {
-              setSelectedProduct(null)
-              setIsDialogOpen(true)
-            }}
-          >
+          <Button className="bg-primary hover:bg-primary/90 gap-2 w-full sm:w-auto" onClick={() => router.push("/products/new")}>
             <Plus className="w-4 h-4" />
             Add Product
           </Button>
@@ -232,6 +288,7 @@ export default function ProductsPage() {
                         className="border-b border-border hover:bg-secondary/30 transition-colors cursor-pointer"
                         onClick={() => {
                           setDetailsProduct(product)
+                          setDetailsMediaIndex(0)
                           setDetailsDialogOpen(true)
                         }}
                       >
@@ -310,7 +367,7 @@ export default function ProductsPage() {
 
       {/* Product Details Dialog */}
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{detailsProduct?.name || "Product"}</DialogTitle>
             <DialogDescription>Full product details</DialogDescription>
@@ -318,35 +375,117 @@ export default function ProductsPage() {
 
           {detailsProduct && (
             <div className="space-y-6">
-              {Array.isArray(detailsProduct.images) && detailsProduct.images.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {detailsProduct.images.map((src, index) => (
-                    <div key={`${src}-${index}`} className="border border-border rounded-md overflow-hidden">
-                      <img src={src} alt={`${detailsProduct.name} image ${index + 1}`} className="w-full h-36 object-cover" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="border border-border rounded-lg overflow-hidden bg-background">
+                  {detailsMedia.length === 0 ? (
+                    <div className="w-full h-72 bg-secondary/30 flex items-center justify-center text-sm text-muted-foreground">
+                      No media
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-muted-foreground">No images</div>
-              )}
+                  ) : (
+                    <div className="relative">
+                      {detailsMedia[detailsMediaIndex]?.type === "video" ? (
+                        <video src={detailsMedia[detailsMediaIndex]?.src} controls className="w-full h-72 object-cover" />
+                      ) : (
+                        <img
+                          src={detailsMedia[detailsMediaIndex]?.src}
+                          alt={detailsProduct.name}
+                          className="w-full h-72 object-cover"
+                        />
+                      )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-xs text-muted-foreground">Category</div>
-                  <div className="text-sm">{detailsProduct.category || "-"}</div>
+                      {detailsMedia.length > 1 && (
+                        <>
+                          <button
+                            type="button"
+                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center"
+                            onClick={() =>
+                              setDetailsMediaIndex((prev) => (prev - 1 + detailsMedia.length) % detailsMedia.length)
+                            }
+                            aria-label="Previous"
+                          >
+                            ‹
+                          </button>
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center"
+                            onClick={() => setDetailsMediaIndex((prev) => (prev + 1) % detailsMedia.length)}
+                            aria-label="Next"
+                          >
+                            ›
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {detailsMedia.length > 1 && (
+                    <div className="flex items-center justify-center gap-2 py-3">
+                      {detailsMedia.map((m, i) => (
+                        <button
+                          key={`${m.type}-${m.src}-${i}`}
+                          type="button"
+                          aria-label={`Go to ${m.type} ${i + 1}`}
+                          onClick={() => setDetailsMediaIndex(i)}
+                          className={`h-2.5 w-2.5 rounded-full transition-colors ${
+                            i === detailsMediaIndex ? "bg-primary" : "bg-border hover:bg-muted-foreground/40"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Status</div>
-                  <div className="text-sm">{detailsProduct.isAvailable ? "Active" : "Inactive"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">MRP</div>
-                  <div className="text-sm">{typeof detailsProduct.mrp === "number" ? detailsProduct.mrp : "-"}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-muted-foreground">Selling Price</div>
-                  <div className="text-sm">
-                    {typeof detailsProduct.sellingPrice === "number" ? detailsProduct.sellingPrice : "-"}
+
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground">Category</div>
+                    <div className="text-sm">{detailsProduct.category || "-"}</div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-xs text-muted-foreground">Status</div>
+                      <div className="text-sm">{detailsProduct.isAvailable ? "Active" : "Inactive"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Pack Of</div>
+                      <div className="text-sm">{typeof detailsProduct.packOf === "number" ? detailsProduct.packOf : "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">MRP</div>
+                      <div className="text-sm">{typeof detailsProduct.mrp === "number" ? detailsProduct.mrp : "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Selling Price</div>
+                      <div className="text-sm">
+                        {typeof detailsProduct.sellingPrice === "number" ? detailsProduct.sellingPrice : "-"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-xs text-muted-foreground">ASIN</div>
+                      <div className="text-sm break-words">{detailsProduct.asin || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">SKU / Unique ID</div>
+                      <div className="text-sm break-words">{detailsProduct.sku || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Flavor</div>
+                      <div className="text-sm break-words">{detailsProduct.flavor || "-"}</div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Usage Timing</div>
+                      <div className="text-sm break-words">{detailsProduct.usageTiming || "-"}</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-xs text-muted-foreground">Rating</div>
+                    <div className="text-sm">
+                      {typeof detailsProduct.rating === "number" ? detailsProduct.rating : "-"} / 5
+                      {typeof detailsProduct.reviewCount === "number" ? ` (${detailsProduct.reviewCount} reviews)` : ""}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -354,6 +493,24 @@ export default function ProductsPage() {
               <div>
                 <div className="text-xs text-muted-foreground">Description</div>
                 <div className="text-sm whitespace-pre-wrap">{detailsProduct.description || "-"}</div>
+              </div>
+
+              <div>
+                <div className="text-xs text-muted-foreground mb-2">Highlights</div>
+                {Array.isArray(detailsProduct.highlights) && detailsProduct.highlights.length > 0 ? (
+                  <ul className="text-sm text-muted-foreground space-y-1 list-disc pl-5">
+                    {detailsProduct.highlights.map((h, i) => (
+                      <li key={`${h}-${i}`}>{h}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-sm text-muted-foreground">-</div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-xs text-muted-foreground">Ingredients</div>
+                <div className="text-sm whitespace-pre-wrap">{detailsProduct.ingredients || "-"}</div>
               </div>
 
               <div>
@@ -371,6 +528,22 @@ export default function ProductsPage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+
+              <div>
+                <div className="text-xs text-muted-foreground mb-2">FAQs</div>
+                {Array.isArray(detailsProduct.faqs) && detailsProduct.faqs.length > 0 ? (
+                  <div className="space-y-2">
+                    {detailsProduct.faqs.map((f, i) => (
+                      <div key={`${f.question}-${i}`} className="border border-border rounded-md p-3">
+                        <div className="text-sm font-medium">{f.question}</div>
+                        <div className="text-sm text-muted-foreground mt-1 whitespace-pre-wrap">{f.answer}</div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">-</div>
                 )}
               </div>
             </div>

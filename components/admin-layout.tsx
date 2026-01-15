@@ -23,6 +23,7 @@ const navigationItems = [
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
@@ -36,6 +37,28 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
     setAuthChecked(true)
   }, [router])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const media = window.matchMedia("(max-width: 767px)")
+    const update = () => {
+      setIsMobile(media.matches)
+      if (media.matches) {
+        setSidebarOpen(false)
+      }
+    }
+
+    update()
+
+    if (typeof media.addEventListener === "function") {
+      media.addEventListener("change", update)
+      return () => media.removeEventListener("change", update)
+    }
+
+    media.addListener(update)
+    return () => media.removeListener(update)
+  }, [])
 
   const handleLogout = async () => {
     localStorage.removeItem("admin_token")
@@ -51,10 +74,24 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex min-h-screen bg-background">
+      {isMobile && sidebarOpen && (
+        <button
+          type="button"
+          className="fixed inset-0 bg-black/40 z-30"
+          onClick={() => setSidebarOpen(false)}
+          aria-label="Close sidebar"
+        />
+      )}
       {/* Sidebar */}
       <aside
-        className={`${sidebarOpen ? "w-64" : "w-20"} border-r border-border bg-sidebar transition-all duration-300 flex flex-col`}
+        className={`${
+          isMobile
+            ? `fixed left-0 top-0 bottom-0 z-40 w-64 border-r border-border bg-sidebar transition-transform duration-300 flex flex-col ${
+                sidebarOpen ? "translate-x-0" : "-translate-x-full"
+              }`
+            : `${sidebarOpen ? "w-64" : "w-20"} border-r border-border bg-sidebar transition-all duration-300 flex flex-col`
+        }`}
       >
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className={`flex items-center gap-2 ${!sidebarOpen && "justify-center w-full"}`}>
@@ -71,6 +108,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
               <Button
                 variant="ghost"
                 className={`w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:font-semibold ${!sidebarOpen && "justify-center px-0"}`}
+                onClick={() => {
+                  if (isMobile) setSidebarOpen(false)
+                }}
               >
                 <span className="text-lg">{item.icon}</span>
                 {sidebarOpen && item.label}
@@ -103,7 +143,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="border-b border-border bg-card px-8 py-4 flex items-center justify-between">
+        <header className="border-b border-border bg-card px-4 py-3 md:px-8 md:py-4 flex items-center justify-between">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="p-2 hover:bg-secondary rounded-lg transition-colors"
@@ -122,8 +162,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-secondary/5 p-8">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-secondary/5 p-4 md:p-8">{children}</main>
       </div>
     </div>
   )
-}
+ }
