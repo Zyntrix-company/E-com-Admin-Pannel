@@ -70,7 +70,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <Link key={item.href} href={item.href}>
               <Button
                 variant="ghost"
-                className={`w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent/50 ${!sidebarOpen && "justify-center px-0"}`}
+                className={`w-full justify-start gap-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:font-semibold ${!sidebarOpen && "justify-center px-0"}`}
               >
                 <span className="text-lg">{item.icon}</span>
                 {sidebarOpen && item.label}
@@ -83,7 +83,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <Button
             variant="ghost"
             size="sm"
-            className={`w-full justify-start gap-2 text-sidebar-foreground ${!sidebarOpen && "justify-center px-0"}`}
+            className={`w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:font-semibold ${!sidebarOpen && "justify-center px-0"}`}
           >
             <Settings className="w-4 h-4" />
             {sidebarOpen && "Settings"}
@@ -91,7 +91,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           <Button
             variant="ghost"
             size="sm"
-            className={`w-full justify-start gap-2 text-destructive hover:bg-destructive/10 ${!sidebarOpen && "justify-center px-0"}`}
+            className={`w-full justify-start gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive hover:font-semibold ${!sidebarOpen && "justify-center px-0"}`}
             onClick={handleLogout}
           >
             <LogOut className="w-4 h-4" />
