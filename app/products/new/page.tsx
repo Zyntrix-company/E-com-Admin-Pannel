@@ -679,94 +679,77 @@ export default function NewProductPage() {
               <CardDescription>How your product will appear to customers</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="border border-border rounded-lg overflow-hidden bg-background">
-                  {preview.media.length === 0 ? (
-                    <div className="w-full h-56 bg-secondary/30 flex items-center justify-center text-sm text-muted-foreground">
-                      No media
-                    </div>
-                  ) : (
-                    <div className="relative">
-                      {preview.media[activeMediaIndex]?.type === "video" ? (
-                        <video src={preview.media[activeMediaIndex]?.src} controls className="w-full h-56 object-cover" />
-                      ) : (
-                        <img
-                          src={preview.media[activeMediaIndex]?.src}
-                          alt={preview.title || "Product"}
-                          className="w-full h-56 object-cover"
-                        />
-                      )}
+              {/* Enhanced Media Display with Large Image/Video and Thumbnails */}
+              <div className="border border-border rounded-lg overflow-hidden bg-background">
+                {preview.media.length === 0 ? (
+                  <div className="w-full h-96 bg-secondary/30 flex items-center justify-center text-sm text-muted-foreground">
+                    No media
+                  </div>
+                ) : (
+                  <div className="relative">
+                    {preview.media[activeMediaIndex]?.type === "video" ? (
+                      <video src={preview.media[activeMediaIndex]?.src} controls className="w-full h-96 object-contain bg-black" />
+                    ) : (
+                      <img
+                        src={preview.media[activeMediaIndex]?.src}
+                        alt={preview.title || "Product"}
+                        className="w-full h-96 object-contain bg-secondary/10"
+                      />
+                    )}
+                  </div>
+                )}
 
-                      {preview.media.length > 1 && (
-                        <>
-                          <button
-                            type="button"
-                            className="absolute left-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center"
-                            onClick={() =>
-                              setActiveMediaIndex((prev) => (prev - 1 + preview.media.length) % preview.media.length)
-                            }
-                            aria-label="Previous"
-                          >
-                            ‹
-                          </button>
-                          <button
-                            type="button"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background border border-border rounded-full h-9 w-9 flex items-center justify-center"
-                            onClick={() => setActiveMediaIndex((prev) => (prev + 1) % preview.media.length)}
-                            aria-label="Next"
-                          >
-                            ›
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {preview.media.length > 1 && (
-                    <div className="flex items-center justify-center gap-2 py-3">
-                      {preview.media.map((m, i) => (
-                        <button
-                          key={`${m.type}-${m.src}-${i}`}
-                          type="button"
-                          aria-label={`Go to ${m.type} ${i + 1}`}
-                          onClick={() => setActiveMediaIndex(i)}
-                          className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                            i === activeMediaIndex ? "bg-primary" : "bg-border hover:bg-muted-foreground/40"
+                {/* Thumbnail Trail Below Main Image */}
+                {preview.media.length > 1 && (
+                  <div className="flex items-center gap-2 p-3 overflow-x-auto bg-secondary/10">
+                    {preview.media.map((m, i) => (
+                      <button
+                        key={`${m.type}-${m.src}-${i}`}
+                        type="button"
+                        onClick={() => setActiveMediaIndex(i)}
+                        className={`flex-shrink-0 w-20 h-20 border-2 rounded-md overflow-hidden transition-all ${i === activeMediaIndex ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"
                           }`}
-                        />
-                      ))}
-                    </div>
-                  )}
+                      >
+                        {m.type === "video" ? (
+                          <video src={m.src} className="w-full h-full object-cover" />
+                        ) : (
+                          <img src={m.src} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Product Info */}
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">{preview.category || "Category"}</div>
+                <div className="text-xl font-semibold break-words">{preview.title || "Product title"}</div>
+                <div className="flex items-baseline gap-2">
+                  <div className="text-2xl font-bold text-primary">₹{Number(preview.price || 0).toLocaleString()}</div>
+                  <div className="text-sm text-muted-foreground line-through">₹{Number(preview.mrp || 0).toLocaleString()}</div>
                 </div>
-                <div className="space-y-2">
-                  <div className="text-sm text-muted-foreground">{preview.category || "Category"}</div>
-                  <div className="text-xl font-semibold break-words">{preview.title || "Product title"}</div>
-                  <div className="flex items-baseline gap-2">
-                    <div className="text-2xl font-bold text-primary">₹{Number(preview.price || 0).toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground line-through">₹{Number(preview.mrp || 0).toLocaleString()}</div>
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    Rating: {preview.rating || 0} / 5 ({preview.reviewCount || 0} reviews)
-                  </div>
-                  <div className="text-sm text-muted-foreground">Pack of: {preview.packOf || 1}</div>
+                <div className="text-sm text-muted-foreground">
+                  Rating: {preview.rating || 0} / 5 ({preview.reviewCount || 0} reviews)
+                </div>
+                <div className="text-sm text-muted-foreground">Pack of: {preview.packOf || 1}</div>
+                <div className="text-xs text-muted-foreground">
+                  Images: {preview.images.length} | Videos: {preview.videos.length}
+                </div>
+                {(preview.asin || preview.sku) && (
                   <div className="text-xs text-muted-foreground">
-                    Images: {preview.images.length} | Videos: {preview.videos.length}
+                    {preview.asin ? `ASIN: ${preview.asin}` : ""}
+                    {preview.asin && preview.sku ? " | " : ""}
+                    {preview.sku ? `SKU: ${preview.sku}` : ""}
                   </div>
-                  {(preview.asin || preview.sku) && (
-                    <div className="text-xs text-muted-foreground">
-                      {preview.asin ? `ASIN: ${preview.asin}` : ""}
-                      {preview.asin && preview.sku ? " | " : ""}
-                      {preview.sku ? `SKU: ${preview.sku}` : ""}
-                    </div>
-                  )}
-                  {(preview.flavor || preview.usageTiming) && (
-                    <div className="text-xs text-muted-foreground">
-                      {preview.flavor ? `Flavor: ${preview.flavor}` : ""}
-                      {preview.flavor && preview.usageTiming ? " | " : ""}
-                      {preview.usageTiming ? `Usage: ${preview.usageTiming}` : ""}
-                    </div>
-                  )}
-                </div>
+                )}
+                {(preview.flavor || preview.usageTiming) && (
+                  <div className="text-xs text-muted-foreground">
+                    {preview.flavor ? `Flavor: ${preview.flavor}` : ""}
+                    {preview.flavor && preview.usageTiming ? " | " : ""}
+                    {preview.usageTiming ? `Usage: ${preview.usageTiming}` : ""}
+                  </div>
+                )}
               </div>
 
               <div>

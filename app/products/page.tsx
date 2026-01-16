@@ -97,8 +97,8 @@ export default function ProductsPage() {
 
     const faqs = Array.isArray(obj.faqs)
       ? (obj.faqs as Array<{ question: string; answer: string }>).filter(
-          (f) => f && typeof f === "object" && typeof (f as any).question === "string" && typeof (f as any).answer === "string",
-        )
+        (f) => f && typeof f === "object" && typeof (f as any).question === "string" && typeof (f as any).answer === "string",
+      )
       : []
 
     const isAvailable =
@@ -134,10 +134,10 @@ export default function ProductsPage() {
 
   type DetailsMediaItem = { type: "image" | "video"; src: string }
 
-const detailsMedia: DetailsMediaItem[] = [
-  ...(detailsProduct?.images ?? []).map((src) => ({ type: "image" as const, src })),
-  ...(detailsProduct?.videos ?? []).map((src) => ({ type: "video" as const, src })),
-]
+  const detailsMedia: DetailsMediaItem[] = [
+    ...(detailsProduct?.images ?? []).map((src) => ({ type: "image" as const, src })),
+    ...(detailsProduct?.videos ?? []).map((src) => ({ type: "video" as const, src })),
+  ]
 
   const fetchProducts = async () => {
     try {
@@ -307,11 +307,10 @@ const detailsMedia: DetailsMediaItem[] = [
                               e.stopPropagation()
                               handleToggleStatus(product)
                             }}
-                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${
-                              product.isAvailable
+                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${product.isAvailable
                                 ? "bg-green-100/80 text-green-700 hover:bg-green-200/80"
                                 : "bg-gray-100/80 text-gray-500 hover:bg-gray-200/80"
-                            }`}
+                              }`}
                             title={product.isAvailable ? "Click to disable" : "Click to enable"}
                           >
                             {product.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -324,8 +323,7 @@ const detailsMedia: DetailsMediaItem[] = [
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                setSelectedProduct(product)
-                                setIsDialogOpen(true)
+                                router.push(`/products/edit/${product.id}`)
                               }}
                             >
                               <Edit2 className="w-4 h-4" />
@@ -426,9 +424,8 @@ const detailsMedia: DetailsMediaItem[] = [
                           type="button"
                           aria-label={`Go to ${m.type} ${i + 1}`}
                           onClick={() => setDetailsMediaIndex(i)}
-                          className={`h-2.5 w-2.5 rounded-full transition-colors ${
-                            i === detailsMediaIndex ? "bg-primary" : "bg-border hover:bg-muted-foreground/40"
-                          }`}
+                          className={`h-2.5 w-2.5 rounded-full transition-colors ${i === detailsMediaIndex ? "bg-primary" : "bg-border hover:bg-muted-foreground/40"
+                            }`}
                         />
                       ))}
                     </div>
