@@ -34,6 +34,7 @@ type FormState = {
     rating: number
     reviewCount: number
     faqs: Faq[]
+    tax: number
 }
 
 export default function EditProductPage() {
@@ -60,6 +61,7 @@ export default function EditProductPage() {
         rating: 0,
         reviewCount: 0,
         faqs: [{ question: "", answer: "" }],
+        tax: 0,
     })
 
     const [images, setImages] = useState<string[]>([])
@@ -130,6 +132,7 @@ export default function EditProductPage() {
                 faqs: Array.isArray(product.faqs) && product.faqs.length > 0
                     ? product.faqs
                     : [{ question: "", answer: "" }],
+                tax: product.tax || 0,
             })
 
             // Set images and videos
@@ -291,6 +294,7 @@ export default function EditProductPage() {
             ingredients: formData.ingredients,
             usageTiming: formData.usageTiming,
             variants: formData.variants,
+            tax: formData.tax,
         }
     }, [formData, images, videos])
 
@@ -351,6 +355,7 @@ export default function EditProductPage() {
                 .filter((f) => f.question || f.answer),
             videos: videos.length > 0 ? videos : undefined,
             video: videos[0] || undefined,
+            tax: formData.tax,
         }
 
         setIsLoading(true)
@@ -461,7 +466,7 @@ export default function EditProductPage() {
                                         />
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <div>
                                             <label className="text-sm font-medium block mb-2">MRP</label>
                                             <Input
@@ -482,6 +487,19 @@ export default function EditProductPage() {
                                                 onChange={(e) =>
                                                     setFormData((p) => ({ ...p, sellingPrice: Number.parseFloat(e.target.value) || 0 }))
                                                 }
+                                                placeholder="0"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-medium block mb-2">Individual Tax (%)</label>
+                                            <Input
+                                                type="number"
+                                                min={0}
+                                                max={100}
+                                                step="0.01"
+                                                value={formData.tax}
+                                                onChange={(e) => setFormData((p) => ({ ...p, tax: Number.parseFloat(e.target.value) || 0 }))}
                                                 placeholder="0"
                                                 required
                                             />

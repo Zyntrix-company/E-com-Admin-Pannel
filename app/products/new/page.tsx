@@ -33,6 +33,7 @@ type FormState = {
   rating: number
   reviewCount: number
   faqs: Faq[]
+  tax: number
 }
 
 export default function NewProductPage() {
@@ -56,6 +57,7 @@ export default function NewProductPage() {
     rating: 0,
     reviewCount: 0,
     faqs: [{ question: "", answer: "" }],
+    tax: 0,
   })
 
   const [images, setImages] = useState<string[]>([])
@@ -196,6 +198,7 @@ export default function NewProductPage() {
       ingredients: formData.ingredients,
       usageTiming: formData.usageTiming,
       variants: formData.variants,
+      tax: formData.tax,
     }
   }, [formData, images, videos])
 
@@ -218,6 +221,7 @@ export default function NewProductPage() {
         mrp: formData.mrp,
         sellingPrice: formData.sellingPrice,
         variants: formData.variants,
+        tax: formData.tax,
         images,
         isAvailable: true,
       }
@@ -282,6 +286,7 @@ export default function NewProductPage() {
         .filter((f) => f.question || f.answer),
       videos: videos.length > 0 ? videos : undefined,
       video: videos[0] || undefined,
+      tax: formData.tax,
     }
 
     setIsLoading(true)
@@ -373,7 +378,7 @@ export default function NewProductPage() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <label className="text-sm font-medium block mb-2">MRP</label>
                       <Input
@@ -394,6 +399,19 @@ export default function NewProductPage() {
                         onChange={(e) =>
                           setFormData((p) => ({ ...p, sellingPrice: Number.parseFloat(e.target.value) || 0 }))
                         }
+                        placeholder="0"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Individual Tax (%)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step="0.01"
+                        value={formData.tax}
+                        onChange={(e) => setFormData((p) => ({ ...p, tax: Number.parseFloat(e.target.value) || 0 }))}
                         placeholder="0"
                         required
                       />
@@ -818,6 +836,6 @@ export default function NewProductPage() {
           </Card>
         </div>
       </div>
-    </AdminLayout>
+    </AdminLayout >
   )
 }

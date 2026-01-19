@@ -41,6 +41,7 @@ interface Product {
   rating?: number
   reviewCount?: number
   faqs?: Array<{ question: string; answer: string }>
+  tax?: number
 }
 
 export default function ProductsPage() {
@@ -129,6 +130,7 @@ export default function ProductsPage() {
       rating: typeof rating === "number" && Number.isFinite(rating) ? rating : undefined,
       reviewCount: typeof reviewCount === "number" && Number.isFinite(reviewCount) ? reviewCount : undefined,
       faqs,
+      tax: typeof obj.tax === "number" ? obj.tax : 0,
     }
   }
 
@@ -277,6 +279,7 @@ export default function ProductsPage() {
                       <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Category</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Variants</th>
+                      <th className="text-left py-3 px-4 font-medium text-sm">Tax (%)</th>
                       <th className="text-center py-3 px-4 font-medium text-sm">Status</th>
                       <th className="text-right py-3 px-4 font-medium text-sm">Actions</th>
                     </tr>
@@ -301,6 +304,9 @@ export default function ProductsPage() {
                             {product.variants.length} variant(s)
                           </span>
                         </td>
+                        <td className="py-4 px-4 text-sm font-medium text-primary">
+                          {product.tax || 0}%
+                        </td>
                         <td className="py-4 px-4 text-center">
                           <button
                             onClick={(e) => {
@@ -308,8 +314,8 @@ export default function ProductsPage() {
                               handleToggleStatus(product)
                             }}
                             className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${product.isAvailable
-                                ? "bg-green-100/80 text-green-700 hover:bg-green-200/80"
-                                : "bg-gray-100/80 text-gray-500 hover:bg-gray-200/80"
+                              ? "bg-green-100/80 text-green-700 hover:bg-green-200/80"
+                              : "bg-gray-100/80 text-gray-500 hover:bg-gray-200/80"
                               }`}
                             title={product.isAvailable ? "Click to disable" : "Click to enable"}
                           >
@@ -454,6 +460,12 @@ export default function ProductsPage() {
                       <div className="text-xs text-muted-foreground">Selling Price</div>
                       <div className="text-sm">
                         {typeof detailsProduct.sellingPrice === "number" ? detailsProduct.sellingPrice : "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground">Individual Tax</div>
+                      <div className="text-sm">
+                        {typeof detailsProduct.tax === "number" ? detailsProduct.tax : "0"}%
                       </div>
                     </div>
                   </div>

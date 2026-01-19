@@ -85,13 +85,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       )}
       {/* Sidebar */}
       <aside
-        className={`${
-          isMobile
-            ? `fixed left-0 top-0 bottom-0 z-40 w-64 border-r border-border bg-sidebar transition-transform duration-300 flex flex-col ${
-                sidebarOpen ? "translate-x-0" : "-translate-x-full"
-              }`
+        className={`${isMobile
+            ? `fixed left-0 top-0 bottom-0 z-40 w-64 border-r border-border bg-sidebar transition-transform duration-300 flex flex-col ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+            }`
             : `${sidebarOpen ? "w-64" : "w-20"} border-r border-border bg-sidebar transition-all duration-300 flex flex-col`
-        }`}
+          }`}
       >
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className={`flex items-center gap-2 ${!sidebarOpen && "justify-center w-full"}`}>
@@ -120,14 +118,16 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </nav>
 
         <div className="p-4 border-t border-sidebar-border space-y-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:font-semibold ${!sidebarOpen && "justify-center px-0"}`}
-          >
-            <Settings className="w-4 h-4" />
-            {sidebarOpen && "Settings"}
-          </Button>
+          <Link href="/settings" className="block w-full">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground hover:font-semibold ${!sidebarOpen && "justify-center px-0"}`}
+            >
+              <Settings className="w-4 h-4" />
+              {sidebarOpen && "Settings"}
+            </Button>
+          </Link>
           <Button
             variant="ghost"
             size="sm"
@@ -166,4 +166,4 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       </div>
     </div>
   )
- }
+}

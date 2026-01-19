@@ -24,6 +24,7 @@ interface Product {
   category: string
   mrp?: number
   sellingPrice?: number
+  tax?: number
   images?: string[]
   variants: Array<{ label: string; price: number; mrp: number; quantity: number }>
   isAvailable: boolean
@@ -43,6 +44,7 @@ export function ProductDialog({ open, onOpenChangeAction, product, onSuccessActi
     category: "",
     mrp: 0,
     sellingPrice: 0,
+    tax: 0,
     variants: [{ label: "", price: 0, mrp: 0, quantity: 0 }],
   })
   const [images, setImages] = useState<string[]>([])
@@ -57,6 +59,7 @@ export function ProductDialog({ open, onOpenChangeAction, product, onSuccessActi
         category: product.category,
         mrp: typeof product.mrp === "number" ? product.mrp : 0,
         sellingPrice: typeof product.sellingPrice === "number" ? product.sellingPrice : 0,
+        tax: typeof product.tax === "number" ? product.tax : 0,
         variants: product.variants,
       })
       setImages(Array.isArray(product.images) ? product.images : [])
@@ -67,6 +70,7 @@ export function ProductDialog({ open, onOpenChangeAction, product, onSuccessActi
         category: "",
         mrp: 0,
         sellingPrice: 0,
+        tax: 0,
         variants: [{ label: "", price: 0, mrp: 0, quantity: 0 }],
       })
       setImages([])
@@ -208,7 +212,7 @@ export function ProductDialog({ open, onOpenChangeAction, product, onSuccessActi
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium block mb-2">MRP</label>
                 <Input
@@ -227,6 +231,19 @@ export function ProductDialog({ open, onOpenChangeAction, product, onSuccessActi
                   min={0}
                   value={formData.sellingPrice}
                   onChange={(e) => setFormData({ ...formData, sellingPrice: Number.parseFloat(e.target.value) || 0 })}
+                  placeholder="0"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium block mb-2">Individual Tax (%)</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  value={formData.tax}
+                  onChange={(e) => setFormData({ ...formData, tax: Number.parseFloat(e.target.value) || 0 })}
                   placeholder="0"
                   required
                 />

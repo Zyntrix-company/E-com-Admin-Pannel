@@ -269,33 +269,85 @@ export default function UsersPage() {
     return `"${escaped}"`
   }
 
-  const downloadCsv = () => {
+  const downloadCsv = async () => {
     if (users.length === 0) return
 
     setIsDownloading(true)
     try {
-      const rows = users as unknown as Array<Record<string, unknown>>
+      // Fetch all addresses and orders in parallel for efficiency
+      const [addressesRes, ordersRes] = await Promise.all([
+        axiosInstance.get("/admin/addresses"),
+        axiosInstance.get("/admin/orders"),
+      ])
 
-      const preferred = ["id", "_id", "firstName", "lastName", "name", "email", "phone", "alternatePhone", "userType", "profileImage", "isVerified", "isActive", "createdAt", "updatedAt"]
-      const keys = new Set<string>()
-      rows.forEach((r) => Object.keys(r || {}).forEach((k) => keys.add(k)))
+      const allAddresses = (addressesRes.data.addresses || []) as Address[]
+      const allOrders = (ordersRes.data.orders || []) as Order[]
 
-      const otherKeys = Array.from(keys)
-        .filter((k) => !preferred.includes(k))
-        .sort((a, b) => a.localeCompare(b))
+      // Create maps for quick lookup
+      const addressMap = new Map<string, Address[]>()
+      allAddresses.forEach((addr) => {
+        const list = addressMap.get(addr.userId) || []
+        list.push(addr)
+        addressMap.set(addr.userId, list)
+      })
 
-      const headers = [...preferred.filter((k) => keys.has(k)), ...otherKeys]
+      const orderMap = new Map<string, Order[]>()
+      allOrders.forEach((order) => {
+        const list = orderMap.get(order.userId) || []
+        list.push(order)
+        orderMap.set(order.userId, list)
+      })
 
+      const rows = users.map((user) => {
+        const userId = user.id || user._id || ""
+        const userAddresses = addressMap.get(userId) || []
+        const userOrders = orderMap.get(userId) || []
+
+        // Format addresses for CSV
+        const formattedAddresses = userAddresses
+          .map((a) => `${a.title}: ${a.address}, ${a.city}, ${a.state} - ${a.pincode} (${a.phone})`)
+          .join(" | ")
+
+        // Format orders for CSV
+        const orderSummary = userOrders
+          .map((o) => `Order #${o.orderId}: ₹${o.totalAmount} (${o.orderStatus}, ${o.paymentStatus})`)
+          .join(" | ")
+
+        const totalSpent = userOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+
+        return {
+          id: userId,
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          name: user.name || "",
+          email: user.email || "",
+          phone: user.phone || "",
+          alternatePhone: user.alternatePhone || "",
+          userType: user.userType || "",
+          isVerified: user.isVerified ? "Yes" : "No",
+          isActive: user.isActive ? "Yes" : "No",
+          createdAt: new Date(user.createdAt).toLocaleString(),
+          updatedAt: new Date(user.updatedAt).toLocaleString(),
+          totalOrders: userOrders.length,
+          totalSpent: `₹${totalSpent}`,
+          addresses: formattedAddresses,
+          recentOrdersSummary: orderSummary,
+        }
+      })
+
+      if (rows.length === 0) return
+
+      const headers = Object.keys(rows[0])
       const csv = [
         headers.map(escapeCsvValue).join(","),
-        ...rows.map((r) => headers.map((h) => escapeCsvValue(r?.[h])).join(",")),
+        ...rows.map((r) => headers.map((h) => escapeCsvValue(r[h as keyof typeof r])).join(",")),
       ].join("\n")
 
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+      a.download = `users-full-report-${new Date().toISOString().slice(0, 10)}.csv`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -303,7 +355,7 @@ export default function UsersPage() {
 
       toast({
         title: "Success",
-        description: "Users CSV downloaded successfully",
+        description: "Full user report downloaded successfully",
       })
     } catch (error) {
       toast({
