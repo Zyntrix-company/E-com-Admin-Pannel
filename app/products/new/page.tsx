@@ -85,7 +85,17 @@ export default function NewProductPage() {
 
     try {
       const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
-      setImages((prev) => [...prev, ...next])
+      setImages((prev) => {
+        const combined = [...prev, ...next]
+        if (combined.length > 10) {
+          toast({
+            title: "Warning",
+            description: "Only the first 10 images will be saved",
+          })
+          return combined.slice(0, 10)
+        }
+        return combined
+      })
       e.target.value = ""
     } catch (error) {
       toast({
