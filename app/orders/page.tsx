@@ -24,7 +24,7 @@ interface Order {
     state: string
     pincode: string
   }
-  items: Array<{ 
+  items: Array<{
     productId: string
     name: string
     quantity: number
@@ -79,10 +79,10 @@ export default function OrdersPage() {
     try {
       const response = await axiosInstance.get("/admin/orders")
       const payload = response.data
-      
+
       // Extract orders array from response
       const ordersList = payload?.orders || payload?.data?.orders || []
-      
+
       setOrders(ordersList)
     } catch (error) {
       console.error("Error fetching orders:", error)
@@ -270,8 +270,8 @@ export default function OrdersPage() {
                   </thead>
                   <tbody>
                     {filteredOrders.map((order) => (
-                      <tr 
-                        key={order._id} 
+                      <tr
+                        key={order._id}
                         className="border-b border-border hover:bg-secondary/30 transition-colors cursor-pointer"
                         onClick={() => {
                           setSelectedOrder(order)
@@ -308,18 +308,16 @@ export default function OrdersPage() {
                         </td>
                         <td className="py-4 px-4 text-center">
                           <span
-                            className={`text-xs font-medium px-2 py-1 rounded inline-block ${
-                              paymentStatusColors[order.paymentStatus as keyof typeof paymentStatusColors] || 'bg-gray-100/80 text-gray-700'
-                            }`}
+                            className={`text-xs font-medium px-2 py-1 rounded inline-block ${paymentStatusColors[order.paymentStatus as keyof typeof paymentStatusColors] || 'bg-gray-100/80 text-gray-700'
+                              }`}
                           >
                             {capitalizeFirstLetter(order.paymentStatus)}
                           </span>
                         </td>
                         <td className="py-4 px-4 text-center">
                           <span
-                            className={`text-xs font-medium px-2 py-1 rounded inline-block ${
-                              statusColors[order.orderStatus as keyof typeof statusColors] || 'bg-gray-100/80 text-gray-700'
-                            }`}
+                            className={`text-xs font-medium px-2 py-1 rounded inline-block ${statusColors[order.orderStatus as keyof typeof statusColors] || 'bg-gray-100/80 text-gray-700'
+                              }`}
                           >
                             {capitalizeFirstLetter(order.orderStatus)}
                           </span>
@@ -352,8 +350,8 @@ export default function OrdersPage() {
         <OrderDetailsDrawer
           order={selectedOrder}
           open={drawerOpen}
-          onOpenChange={setDrawerOpen}
-          onStatusChange={() => {
+          onOpenChangeAction={setDrawerOpen}
+          onStatusChangeAction={() => {
             fetchOrders()
             setDrawerOpen(false)
           }}

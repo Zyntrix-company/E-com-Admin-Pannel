@@ -28,7 +28,7 @@ interface Order {
     state: string
     pincode: string
   }
-  items: Array<{ 
+  items: Array<{
     productId: string
     name: string
     quantity: number
@@ -59,11 +59,11 @@ interface Order {
 interface OrderDetailsDrawerProps {
   order: Order
   open: boolean
-  onOpenChange: (open: boolean) => void
-  onStatusChange: () => void
+  onOpenChangeAction: (open: boolean) => void
+  onStatusChangeAction: () => void
 }
 
-export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }: OrderDetailsDrawerProps) {
+export function OrderDetailsDrawer({ order, open, onOpenChangeAction, onStatusChangeAction }: OrderDetailsDrawerProps) {
   const [selectedStatus, setSelectedStatus] = useState(order.orderStatus)
   const [adminRemarks, setAdminRemarks] = useState(order.adminRemarks || "")
   const [isLoading, setIsLoading] = useState(false)
@@ -84,7 +84,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
         description: "Order status updated successfully",
       })
 
-      onStatusChange()
+      onStatusChangeAction()
     } catch (error) {
       toast({
         title: "Error",
@@ -110,7 +110,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
   const timingLabel = typeof timing === "string" ? timing : ""
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -237,7 +237,7 @@ export function OrderDetailsDrawer({ order, open, onOpenChange, onStatusChange }
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChangeAction(false)}>
             Close
           </Button>
           <Button onClick={handleUpdateStatus} className="bg-primary hover:bg-primary/90" disabled={isLoading}>

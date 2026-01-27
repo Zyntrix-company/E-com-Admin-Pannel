@@ -276,6 +276,7 @@ export default function ProductsPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 font-medium text-sm">Photo</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Category</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Variants</th>
@@ -295,6 +296,21 @@ export default function ProductsPage() {
                           setDetailsDialogOpen(true)
                         }}
                       >
+                        <td className="py-4 px-4">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary/30 flex-shrink-0">
+                            {product.images && product.images.length > 0 ? (
+                              <img
+                                src={product.images[0]}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                                No Image
+                              </div>
+                            )}
+                          </div>
+                        </td>
                         <td className="py-4 px-4">
                           <p className="font-medium">{product.name}</p>
                         </td>

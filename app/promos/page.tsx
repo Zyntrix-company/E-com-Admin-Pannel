@@ -8,8 +8,9 @@ import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
 import { AdminLayout } from "@/components/admin-layout"
 import { Badge } from "@/components/ui/badge"
+import { Pencil, Trash2, X, AlertTriangle } from "lucide-react"
 
-type DiscountType = "percentage" | "flat"
+type DiscountType = "percentage" | "fixed"
 
 interface PromoCode {
   _id: string
@@ -32,6 +33,7 @@ export default function PromosPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isFetchingPromos, setIsFetchingPromos] = useState(true)
   const [promos, setPromos] = useState<PromoCode[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     code: "",
     description: "",
@@ -64,6 +66,56 @@ export default function PromosPage() {
     fetchPromos()
   }, [])
 
+  const handleEdit = (promo: PromoCode) => {
+    setEditingId(promo._id)
+    setFormData({
+      code: promo.code,
+      description: promo.description,
+      discountType: promo.discountType,
+      discountValue: promo.discountValue,
+      minimumOrderValue: promo.minimumOrderValue,
+      maximumDiscount: promo.maximumDiscount?.toString() || "",
+      usageLimit: promo.usageLimit?.toString() || "",
+      validFrom: new Date(promo.validFrom).toISOString().split('T')[0],
+      validUntil: new Date(promo.validUntil).toISOString().split('T')[0],
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setFormData({
+      code: "",
+      description: "",
+      discountType: "percentage",
+      discountValue: 0,
+      minimumOrderValue: 0,
+      maximumDiscount: "",
+      usageLimit: "",
+      validFrom: "",
+      validUntil: "",
+    })
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this promo code?")) return
+
+    try {
+      await axiosInstance.delete(`/admin/promos/${id}`)
+      toast({
+        title: "Success",
+        description: "Promo code deleted successfully",
+      })
+      fetchPromos()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete promo code",
+        variant: "destructive",
+      })
+    }
+  }
+
   const handleSubmit = async () => {
     setIsLoading(true)
 
@@ -87,25 +139,21 @@ export default function PromosPage() {
         }
       })
 
-      await axiosInstance.post("/admin/promos", payload)
+      if (editingId) {
+        await axiosInstance.put(`/admin/promos/${editingId}`, payload)
+        toast({
+          title: "Success",
+          description: "Promo code updated successfully",
+        })
+      } else {
+        await axiosInstance.post("/admin/promos", payload)
+        toast({
+          title: "Success",
+          description: "Promo code created successfully",
+        })
+      }
 
-      toast({
-        title: "Success",
-        description: "Promo code created successfully",
-      })
-
-      setFormData({
-        code: "",
-        description: "",
-        discountType: "percentage",
-        discountValue: 0,
-        minimumOrderValue: 0,
-        maximumDiscount: "",
-        usageLimit: "",
-        validFrom: "",
-        validUntil: "",
-      })
-
+      cancelEdit()
       fetchPromos()
     } catch (error) {
       const message =
@@ -115,7 +163,7 @@ export default function PromosPage() {
 
       toast({
         title: "Error",
-        description: message || (error instanceof Error ? error.message : "Failed to create promo"),
+        description: message || (error instanceof Error ? error.message : "Failed to save promo"),
         variant: "destructive",
       })
     } finally {
@@ -138,18 +186,44 @@ export default function PromosPage() {
     return promo.isActive && now >= validFrom && now <= validUntil
   }
 
+  const toggleStatus = async (id: string) => {
+    try {
+      await axiosInstance.patch(`/admin/promos/${id}/toggle-status`)
+      fetchPromos()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to toggle status",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Promo Codes</h1>
-          <p className="text-muted-foreground mt-2">Create and manage promo codes</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Promo Codes</h1>
+            <p className="text-muted-foreground mt-2">Manage discount codes for your customers</p>
+          </div>
         </div>
 
-        <Card>
+        <Card className={editingId ? "ring-2 ring-primary border-primary" : ""}>
           <CardHeader>
-            <CardTitle>Create Promo Code</CardTitle>
-            <CardDescription>Configure discount type, value and validity</CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{editingId ? "Edit Promo Code" : "Create Promo Code"}</CardTitle>
+                <CardDescription>
+                  {editingId ? `Updating code: ${formData.code}` : "Configure discount type, value and validity"}
+                </CardDescription>
+              </div>
+              {editingId && (
+                <Button variant="ghost" size="sm" onClick={cancelEdit} className="gap-2">
+                  <X className="w-4 h-4" /> Cancel Edit
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-5">
@@ -173,7 +247,7 @@ export default function PromosPage() {
                     required
                   >
                     <option value="percentage">Percentage</option>
-                    <option value="flat">Flat</option>
+                    <option value="fixed">Fixed Amount</option>
                   </select>
                 </div>
 
@@ -258,9 +332,14 @@ export default function PromosPage() {
                 />
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-3">
+                {editingId && (
+                  <Button variant="outline" onClick={cancelEdit} disabled={isLoading}>
+                    Cancel
+                  </Button>
+                )}
                 <Button onClick={handleSubmit} className="bg-primary hover:bg-primary/90" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Promo Code"}
+                  {isLoading ? (editingId ? "Saving..." : "Creating...") : (editingId ? "Update Promo Code" : "Create Promo Code")}
                 </Button>
               </div>
             </div>
@@ -282,7 +361,7 @@ export default function PromosPage() {
                 {promos.map((promo) => (
                   <div
                     key={promo._id}
-                    className="border border-border rounded-lg p-4 hover:bg-accent/5 transition-colors"
+                    className={`border border-border rounded-lg p-4 hover:bg-accent/5 transition-colors ${editingId === promo._id ? "bg-primary/5 border-primary" : ""}`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -295,8 +374,8 @@ export default function PromosPage() {
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-3">{promo.description}</p>
-                        
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
                           <div>
                             <span className="text-muted-foreground">Discount:</span>
                             <p className="font-medium">
@@ -324,8 +403,36 @@ export default function PromosPage() {
                           </div>
                         </div>
 
-                        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>Valid: {formatDate(promo.validFrom)} - {formatDate(promo.validUntil)}</span>
+                        <div className="mt-3 flex items-center justify-between">
+                          <div className="text-xs text-muted-foreground">
+                            Valid: {formatDate(promo.validFrom)} - {formatDate(promo.validUntil)}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(promo)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Pencil className="w-4 h-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleStatus(promo._id)}
+                              className="h-8 px-2 text-xs font-medium"
+                            >
+                              {promo.isActive ? "Deactivate" : "Activate"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDelete(promo._id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>

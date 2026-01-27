@@ -108,18 +108,18 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-6">
-                    {/* Tax Settings */}
+                    {/* GST Settings */}
                     <Card>
                         <CardHeader>
                             <div className="flex items-center gap-2">
                                 <Percent className="w-5 h-5 text-primary" />
-                                <CardTitle>Tax Configuration</CardTitle>
+                                <CardTitle>GST Configuration</CardTitle>
                             </div>
-                            <CardDescription>Set the global tax percentage applied on the overall bill</CardDescription>
+                            <CardDescription>Set the global GST percentage applied on the overall bill</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="max-w-xs">
-                                <label className="text-sm font-medium mb-2 block">Global Tax (%)</label>
+                                <label className="text-sm font-medium mb-2 block">GST (%)</label>
                                 <div className="flex gap-4">
                                     <Input
                                         type="number"
@@ -142,7 +142,7 @@ export default function SettingsPage() {
                             </div>
                         </CardContent>
                         <CardFooter className="bg-secondary/10 text-xs text-muted-foreground px-6 py-3 border-t">
-                            This tax will be applied to the total amount after individual product taxes are added.
+                            This GST will be applied to the total amount after individual product taxes are added.
                         </CardFooter>
                     </Card>
 
