@@ -153,3 +153,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #CED4DA;
 }
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}

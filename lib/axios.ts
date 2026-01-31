@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios"
 
 export const axiosInstance = axios.create({
-  //baseURL: "http://localhost:5000/api",
+  // baseURL: "http://localhost:5000/api",
   baseURL: "https://e-com-backend-7fyb.onrender.com/api",
 })
 

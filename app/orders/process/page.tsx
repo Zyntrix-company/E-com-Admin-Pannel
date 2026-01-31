@@ -10,9 +10,19 @@ import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+} from "@/components/ui/sheet"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
     Printer, Package, Truck, Search, Download,
     Clock, AlertCircle, CheckCircle2, MoreVertical,
-    Filter, ChevronRight, FileText
+    Filter, ChevronRight, FileText, X
 } from "lucide-react"
 
 interface Order {
@@ -48,6 +58,13 @@ export default function ProcessOrdersPage() {
     const [searchQuery, setSearchQuery] = useState("")
     const [activeTab, setActiveTab] = useState("non-dispatched")
     const [currentStage, setCurrentStage] = useState<"print" | "pack" | "handover">("print")
+    const [selectedOrders, setSelectedOrders] = useState<string[]>([])
+    const [isFilterOpen, setIsFilterOpen] = useState(false)
+    const [filters, setFilters] = useState({
+        paymentMethod: "all",
+        paymentStatus: "all",
+        dateRange: "all"
+    })
     const { toast } = useToast()
 
     const fetchOrders = async () => {
@@ -75,10 +92,242 @@ export default function ProcessOrdersPage() {
         currentStage === "pack" ? inPack :
             inHandover;
 
-    const finalOrders = stageFilteredOrders.filter(o =>
+    // Apply search and additional filters
+    let finalOrders = stageFilteredOrders.filter(o =>
         o.orderId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         o.address.name.toLowerCase().includes(searchQuery.toLowerCase())
     )
+
+    // Apply payment method filter
+    if (filters.paymentMethod !== "all") {
+        finalOrders = finalOrders.filter(o => o.paymentMethod === filters.paymentMethod)
+    }
+
+    // Apply payment status filter
+    if (filters.paymentStatus !== "all") {
+        finalOrders = finalOrders.filter(o => o.paymentStatus === filters.paymentStatus)
+    }
+
+    // Apply date range filter
+    if (filters.dateRange !== "all") {
+        const now = new Date()
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+
+        finalOrders = finalOrders.filter(o => {
+            const orderDate = new Date(o.createdAt)
+            const orderDay = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate())
+
+            switch (filters.dateRange) {
+                case "today":
+                    return orderDay.getTime() === today.getTime()
+                case "yesterday":
+                    const yesterday = new Date(today)
+                    yesterday.setDate(yesterday.getDate() - 1)
+                    return orderDay.getTime() === yesterday.getTime()
+                case "last7days":
+                    const last7days = new Date(today)
+                    last7days.setDate(last7days.getDate() - 7)
+                    return orderDay >= last7days
+                case "last30days":
+                    const last30days = new Date(today)
+                    last30days.setDate(last30days.getDate() - 30)
+                    return orderDay >= last30days
+                default:
+                    return true
+            }
+        })
+    }
+
+    // Selection handlers
+    const handleSelectAll = (checked: boolean) => {
+        if (checked) {
+            setSelectedOrders(finalOrders.map(o => o._id))
+        } else {
+            setSelectedOrders([])
+        }
+    }
+
+    const handleSelectOrder = (orderId: string, checked: boolean) => {
+        if (checked) {
+            setSelectedOrders(prev => [...prev, orderId])
+        } else {
+            setSelectedOrders(prev => prev.filter(id => id !== orderId))
+        }
+    }
+
+    // Bulk print handler
+    const handleBulkPrint = () => {
+        if (selectedOrders.length === 0) {
+            toast({
+                title: "No Orders Selected",
+                description: "Please select at least one order to print labels.",
+                variant: "destructive"
+            })
+            return
+        }
+
+        // Get selected order details
+        const ordersToPrint = orders.filter(o => selectedOrders.includes(o._id))
+
+        // Create print content with all labels
+        const printWindow = window.open('', '_blank')
+        if (!printWindow) {
+            toast({
+                title: "Error",
+                description: "Please allow popups to print labels.",
+                variant: "destructive"
+            })
+            return
+        }
+
+        // Generate HTML for all labels
+        let printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Shipping Labels - Bulk Print</title>
+                <style>
+                    @media print {
+                        @page {
+                            size: 4in 6in;
+                            margin: 0;
+                        }
+                        .label {
+                            page-break-after: always;
+                            width: 4in;
+                            height: 6in;
+                            padding: 0.25in;
+                            box-sizing: border-box;
+                            font-family: Arial, sans-serif;
+                        }
+                        .label:last-child {
+                            page-break-after: auto;
+                        }
+                    }
+                    .label {
+                        width: 4in;
+                        height: 6in;
+                        padding: 0.25in;
+                        border: 2px solid #000;
+                        margin-bottom: 0.5in;
+                        box-sizing: border-box;
+                        font-family: Arial, sans-serif;
+                    }
+                    .header {
+                        text-align: center;
+                        border-bottom: 2px solid #000;
+                        padding-bottom: 10px;
+                        margin-bottom: 10px;
+                    }
+                    .order-id {
+                        font-size: 18px;
+                        font-weight: bold;
+                        margin: 5px 0;
+                    }
+                    .section {
+                        margin: 10px 0;
+                    }
+                    .section-title {
+                        font-weight: bold;
+                        font-size: 12px;
+                        margin-bottom: 5px;
+                        text-transform: uppercase;
+                    }
+                    .address {
+                        font-size: 14px;
+                        line-height: 1.4;
+                    }
+                    .items {
+                        font-size: 11px;
+                        margin-top: 10px;
+                        border-top: 1px solid #ccc;
+                        padding-top: 10px;
+                    }
+                    .item {
+                        margin: 3px 0;
+                    }
+                    .footer {
+                        position: absolute;
+                        bottom: 0.25in;
+                        left: 0.25in;
+                        right: 0.25in;
+                        text-align: center;
+                        font-size: 10px;
+                        border-top: 1px solid #000;
+                        padding-top: 5px;
+                    }
+                </style>
+            </head>
+            <body>
+        `
+
+        ordersToPrint.forEach((order, index) => {
+            printContent += `
+                <div class="label">
+                    <div class="header">
+                        <div style="font-size: 20px; font-weight: bold;">SHIPPING LABEL</div>
+                        <div class="order-id">Order #${order.orderId}</div>
+                        <div style="font-size: 10px;">${new Date(order.createdAt).toLocaleDateString()}</div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">Ship To:</div>
+                        <div class="address">
+                            <div style="font-weight: bold; font-size: 16px;">${order.address.name}</div>
+                            <div>${order.address.phone}</div>
+                            <div>${order.address.address}</div>
+                            <div>${order.address.city}, ${order.address.state}</div>
+                            <div style="font-weight: bold;">PIN: ${order.address.pincode}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="items">
+                        <div class="section-title">Items (${order.items.length}):</div>
+                        ${order.items.map(item => `
+                            <div class="item">• ${item.name} (Qty: ${item.quantity})</div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="footer">
+                        <div style="font-weight: bold;">Payment: ${order.paymentMethod.toUpperCase()} - ${order.paymentStatus.toUpperCase()}</div>
+                        <div>Total Amount: ₹${order.totalAmount}</div>
+                    </div>
+                </div>
+            `
+        })
+
+        printContent += `
+            </body>
+            </html>
+        `
+
+        printWindow.document.write(printContent)
+        printWindow.document.close()
+
+        // Wait for content to load then print
+        printWindow.onload = () => {
+            printWindow.focus()
+            printWindow.print()
+        }
+
+        toast({
+            title: "Print Ready",
+            description: `Printing ${selectedOrders.length} shipping label(s)`,
+        })
+    }
+
+    // Clear filters
+    const clearFilters = () => {
+        setFilters({
+            paymentMethod: "all",
+            paymentStatus: "all",
+            dateRange: "all"
+        })
+    }
+
+    const hasActiveFilters = filters.paymentMethod !== "all" ||
+        filters.paymentStatus !== "all" ||
+        filters.dateRange !== "all"
 
     const handleUpdateStage = async (orderId: string, nextStage: string) => {
         try {
@@ -126,11 +375,116 @@ export default function ProcessOrdersPage() {
                         <p className="text-sm font-medium text-slate-500">End-to-end fulfillment workflow management</p>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="outline" className="bg-white rounded-xl font-bold text-xs uppercase tracking-widest gap-2 shadow-sm border-none">
-                            <Filter className="w-4 h-4 text-primary" /> Filter
-                        </Button>
-                        <Button className="rounded-xl font-black text-xs uppercase tracking-widest bg-primary shadow-lg shadow-primary/20 gap-2">
-                            <Printer className="w-4 h-4" /> Bulk Print
+                        <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                            <SheetTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className={`bg-white rounded-xl font-bold text-xs uppercase tracking-widest gap-2 shadow-sm border-none ${hasActiveFilters ? 'ring-2 ring-primary' : ''}`}
+                                >
+                                    <Filter className="w-4 h-4 text-primary" />
+                                    Filter
+                                    {hasActiveFilters && (
+                                        <span className="ml-1 bg-primary text-white rounded-full w-5 h-5 flex items-center justify-center text-[10px]">
+                                            {Object.values(filters).filter(v => v !== "all").length}
+                                        </span>
+                                    )}
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent className="w-[400px] sm:w-[540px]">
+                                <SheetHeader>
+                                    <SheetTitle className="text-xl font-black uppercase tracking-tight">Filter Orders</SheetTitle>
+                                    <SheetDescription>
+                                        Apply filters to narrow down your order list
+                                    </SheetDescription>
+                                </SheetHeader>
+                                <div className="mt-8 space-y-6">
+                                    <div className="space-y-3">
+                                        <Label htmlFor="payment-method" className="text-xs font-black uppercase tracking-widest text-slate-600">
+                                            Payment Method
+                                        </Label>
+                                        <Select
+                                            value={filters.paymentMethod}
+                                            onValueChange={(value) => setFilters(prev => ({ ...prev, paymentMethod: value }))}
+                                        >
+                                            <SelectTrigger id="payment-method" className="rounded-xl">
+                                                <SelectValue placeholder="Select payment method" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Methods</SelectItem>
+                                                <SelectItem value="cod">Cash on Delivery</SelectItem>
+                                                <SelectItem value="online">Online Payment</SelectItem>
+                                                <SelectItem value="partial">Partial Payment</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label htmlFor="payment-status" className="text-xs font-black uppercase tracking-widest text-slate-600">
+                                            Payment Status
+                                        </Label>
+                                        <Select
+                                            value={filters.paymentStatus}
+                                            onValueChange={(value) => setFilters(prev => ({ ...prev, paymentStatus: value }))}
+                                        >
+                                            <SelectTrigger id="payment-status" className="rounded-xl">
+                                                <SelectValue placeholder="Select payment status" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Statuses</SelectItem>
+                                                <SelectItem value="paid">Paid</SelectItem>
+                                                <SelectItem value="pending">Pending</SelectItem>
+                                                <SelectItem value="failed">Failed</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <Label htmlFor="date-range" className="text-xs font-black uppercase tracking-widest text-slate-600">
+                                            Date Range
+                                        </Label>
+                                        <Select
+                                            value={filters.dateRange}
+                                            onValueChange={(value) => setFilters(prev => ({ ...prev, dateRange: value }))}
+                                        >
+                                            <SelectTrigger id="date-range" className="rounded-xl">
+                                                <SelectValue placeholder="Select date range" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">All Time</SelectItem>
+                                                <SelectItem value="today">Today</SelectItem>
+                                                <SelectItem value="yesterday">Yesterday</SelectItem>
+                                                <SelectItem value="last7days">Last 7 Days</SelectItem>
+                                                <SelectItem value="last30days">Last 30 Days</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <Button
+                                            variant="outline"
+                                            onClick={clearFilters}
+                                            className="flex-1 rounded-xl font-bold uppercase text-xs tracking-widest"
+                                        >
+                                            <X className="w-4 h-4 mr-2" />
+                                            Clear All
+                                        </Button>
+                                        <Button
+                                            onClick={() => setIsFilterOpen(false)}
+                                            className="flex-1 rounded-xl font-bold uppercase text-xs tracking-widest bg-primary"
+                                        >
+                                            Apply Filters
+                                        </Button>
+                                    </div>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                        <Button
+                            onClick={handleBulkPrint}
+                            disabled={selectedOrders.length === 0}
+                            className="rounded-xl font-black text-xs uppercase tracking-widest bg-primary shadow-lg shadow-primary/20 gap-2 disabled:opacity-50"
+                        >
+                            <Printer className="w-4 h-4" />
+                            Bulk Print {selectedOrders.length > 0 && `(${selectedOrders.length})`}
                         </Button>
                     </div>
                 </div>
@@ -199,7 +553,14 @@ export default function ProcessOrdersPage() {
                                     <table className="w-full">
                                         <thead>
                                             <tr className="border-b border-slate-100">
-                                                <th className="w-12 py-4 px-6"><input type="checkbox" className="rounded-md border-slate-300" /></th>
+                                                <th className="w-12 py-4 px-6">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="rounded-md border-slate-300 cursor-pointer"
+                                                        checked={finalOrders.length > 0 && selectedOrders.length === finalOrders.length}
+                                                        onChange={(e) => handleSelectAll(e.target.checked)}
+                                                    />
+                                                </th>
                                                 <th className="text-left py-4 px-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Order Details</th>
                                                 <th className="text-left py-4 px-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Product</th>
                                                 <th className="text-left py-4 px-4 text-[10px] font-black uppercase text-slate-400 tracking-widest">Payment</th>
@@ -229,7 +590,14 @@ export default function ProcessOrdersPage() {
                                             ) : (
                                                 finalOrders.map(order => (
                                                     <tr key={order._id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
-                                                        <td className="py-5 px-6"><input type="checkbox" className="rounded-md border-slate-300" /></td>
+                                                        <td className="py-5 px-6">
+                                                            <input
+                                                                type="checkbox"
+                                                                className="rounded-md border-slate-300 cursor-pointer"
+                                                                checked={selectedOrders.includes(order._id)}
+                                                                onChange={(e) => handleSelectOrder(order._id, e.target.checked)}
+                                                            />
+                                                        </td>
                                                         <td className="py-5 px-4">
                                                             <p className="text-sm font-black text-slate-800 tracking-tight">#{order.orderId}</p>
                                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{new Date(order.createdAt).toLocaleDateString()}</p>

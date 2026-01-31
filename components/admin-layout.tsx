@@ -4,33 +4,42 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
-import { Menu, X, LogOut, Settings } from "lucide-react"
+import {
+  Menu, X, LogOut, Settings, Search, Bell,
+  LayoutDashboard, Package, Tag, Users, ShoppingBag,
+  Cog, BookOpen, BarChart3, FileCheck
+} from "lucide-react"
 
 interface AdminLayoutProps {
   children: React.ReactNode
 }
 
 const navigationItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/products", label: "Products", icon: "📦" },
-  { href: "/promos", label: "Promo Codes", icon: "🏷️" },
-  { href: "/users", label: "Users", icon: "👥" },
-  { href: "/orders", label: "Orders", icon: "🧾" },
-  { href: "/orders/process", label: "Process Orders", icon: "⚙️" },
-  { href: "/catalogues", label: "Catalogues", icon: "📚" },
-  { href: "/reports", label: "Reports", icon: "📈" },
-  { href: "/orders/audit", label: "Audit", icon: "⚖️" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/products", label: "Products", icon: Package },
+  { href: "/promos", label: "Promo Codes", icon: Tag },
+  { href: "/users", label: "Users", icon: Users },
+  { href: "/orders", label: "Orders", icon: ShoppingBag },
+  { href: "/orders/process", label: "Process Orders", icon: Cog },
+  { href: "/catalogues", label: "Catalogues", icon: BookOpen },
+  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/orders/audit", label: "Audit", icon: FileCheck },
 ]
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [authChecked, setAuthChecked] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const { toast } = useToast()
+
+  const isSidebarExpanded = isMobile ? sidebarOpen : isHovered
 
   useEffect(() => {
     const token = localStorage.getItem("admin_token")
@@ -45,12 +54,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   useEffect(() => {
     if (typeof window === "undefined") return
 
-    const media = window.matchMedia("(max-width: 1024px)") // Professional dashboards often use 1024px for mobile/tablet breakpoint
+    const media = window.matchMedia("(max-width: 1024px)")
     const update = () => {
       setIsMobile(media.matches)
-      if (media.matches) {
-        setSidebarOpen(false)
-      }
+      setSidebarOpen(false)
     }
 
     update()
@@ -78,115 +85,141 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   }
 
   return (
-    <div className="flex min-h-screen bg-background font-sans">
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <button
           type="button"
-          className="fixed inset-0 bg-black/40 z-30 transition-opacity"
+          className="fixed inset-0 bg-black/50 z-40 transition-opacity"
           onClick={() => setSidebarOpen(false)}
           aria-label="Close sidebar"
         />
       )}
+
       {/* Sidebar */}
       <aside
-        onMouseEnter={() => !isMobile && setSidebarOpen(true)}
-        onMouseLeave={() => !isMobile && setSidebarOpen(false)}
         className={`${isMobile
-          ? `fixed left-0 top-0 bottom-0 z-40 w-64 border-r border-border bg-sidebar transition-transform duration-300 flex flex-col ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          ? `fixed left-0 top-0 bottom-0 z-50 w-64 bg-white border-r border-slate-200 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`
-          : `${sidebarOpen ? "w-64" : "w-22"} border-r border-border bg-sidebar shadow-sm transition-all duration-300 ease-in-out flex flex-col z-40`
-          }`}
+          : `fixed left-0 top-0 bottom-0 z-40 ${isSidebarExpanded ? "w-64" : "w-20"} bg-white border-r border-slate-200 transition-all duration-300 ease-in-out shadow-sm`
+          } flex flex-col overflow-hidden`}
+        onMouseEnter={() => !isMobile && setIsHovered(true)}
+        onMouseLeave={() => !isMobile && setIsHovered(false)}
       >
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-between overflow-hidden">
-          <div className={`flex items-center gap-3 ${!sidebarOpen && !isMobile && "justify-center w-full"}`}>
-            <div className="w-10 h-10 shrink-0 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-              <span className="text-xl font-serif text-white">अ</span>
-            </div>
-            {(sidebarOpen || (isMobile && sidebarOpen)) && (
-              <span className="font-bold text-xl tracking-tight text-foreground truncate whitespace-nowrap">
-                Ayurveda
+        {/* Logo */}
+        <div className="h-16 px-6 flex items-center border-b border-slate-200 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+
+            {isSidebarExpanded && (
+              <span className="font-bold text-lg text-slate-800 truncate transition-opacity duration-300">
+                Tayyiba Naturals
               </span>
             )}
           </div>
         </div>
 
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto">
-          {navigationItems.map((item) => (
-            <Link key={item.href} href={item.href} className="block">
-              <Button
-                variant="ghost"
-                className={`w-full justify-start gap-4 text-foreground/80 rounded-xl transition-all duration-200 hover:bg-secondary hover:text-primary group ${!sidebarOpen && !isMobile ? "justify-center px-0 h-14" : "px-4 h-12"
-                  }`}
-                onClick={() => {
-                  if (isMobile) setSidebarOpen(false)
-                }}
-              >
-                <span className="text-2xl group-hover:scale-110 transition-transform duration-200">{item.icon}</span>
-                {(sidebarOpen || (isMobile && sidebarOpen)) && (
-                  <span className="font-semibold text-sm tracking-tight whitespace-nowrap">{item.label}</span>
-                )}
-              </Button>
-            </Link>
-          ))}
+        {/* Navigation */}
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-none">
+          {navigationItems.map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+
+            return (
+              <Link key={item.href} href={item.href}>
+                <Button
+                  variant="ghost"
+                  className={`w-full ${isSidebarExpanded ? "justify-start" : "justify-center"
+                    } gap-3 h-11 rounded-lg transition-all ${isActive
+                      ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700"
+                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                    }`}
+                  onClick={() => {
+                    if (isMobile) setSidebarOpen(false)
+                  }}
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                  {isSidebarExpanded && (
+                    <span className="font-medium text-sm truncate">{item.label}</span>
+                  )}
+                </Button>
+              </Link>
+            )
+          })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border space-y-2">
-          <Link href="/settings" className="block w-full">
+        {/* Bottom Actions */}
+        <div className="p-3 border-t border-slate-200 space-y-1 shrink-0">
+          <Link href="/settings">
             <Button
               variant="ghost"
-              size="sm"
-              className={`w-full justify-start gap-3 text-foreground/70 rounded-lg hover:bg-secondary hover:text-primary ${!sidebarOpen && !isMobile ? "justify-center px-0" : "px-3"
-                }`}
+              className={`w-full ${isSidebarExpanded ? "justify-start" : "justify-center"
+                } gap-3 h-11 rounded-lg text-slate-600 hover:bg-slate-100 hover:text-slate-900`}
             >
               <Settings className="w-5 h-5 shrink-0" />
-              {(sidebarOpen || (isMobile && sidebarOpen)) && <span className="font-medium text-sm">Settings</span>}
+              {isSidebarExpanded && <span className="font-medium text-sm">Settings</span>}
             </Button>
           </Link>
           <Button
             variant="ghost"
-            size="sm"
-            className={`w-full justify-start gap-3 text-destructive/80 rounded-lg hover:bg-destructive/10 hover:text-destructive ${!sidebarOpen && !isMobile ? "justify-center px-0" : "px-3"
-              }`}
+            className={`w-full ${isSidebarExpanded ? "justify-start" : "justify-center"
+              } gap-3 h-11 rounded-lg text-rose-600 hover:bg-rose-50 hover:text-rose-700`}
             onClick={handleLogout}
           >
             <LogOut className="w-5 h-5 shrink-0" />
-            {(sidebarOpen || (isMobile && sidebarOpen)) && <span className="font-medium text-sm">Logout</span>}
+            {isSidebarExpanded && <span className="font-medium text-sm">Logout</span>}
           </Button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-background">
+      <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${!isMobile ? "pl-20" : ""}`}>
         {/* Top Header */}
-        <header className="sticky top-0 z-20 border-b border-border bg-white px-6 py-4 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4 flex-1">
             {isMobile && (
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 hover:bg-secondary rounded-xl transition-colors"
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
                 aria-label="Toggle menu"
               >
-                <Menu className="w-6 h-6 text-foreground" />
+                <Menu className="w-5 h-5 text-slate-600" />
               </button>
             )}
-            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-widest hidden sm:block">Admin Dashboard</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <p className="font-bold text-sm text-foreground">Admin User</p>
-              <p className="text-xs text-muted-foreground">admin@example.com</p>
+
+            {/* Search Bar */}
+            <div className="relative max-w-md w-full hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Input
+                type="search"
+                placeholder="Search..."
+                className="pl-10 h-10 bg-slate-50 border-slate-200 focus:bg-white focus:border-indigo-300 focus:ring-indigo-200 rounded-lg"
+              />
             </div>
-            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-primary font-bold border border-border shadow-sm">
-              A
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Notifications */}
+            <button className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors">
+              <Bell className="w-5 h-5 text-slate-600" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full"></span>
+            </button>
+
+            {/* Profile */}
+            <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
+              <div className="text-right hidden sm:block">
+                <p className="font-semibold text-sm text-slate-800">Admin User</p>
+                <p className="text-xs text-slate-500">admin@example.com</p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm shadow-sm">
+                A
+              </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-secondary/5 p-6 md:p-8">
-          <div className="mx-auto max-w-7xl">
-            {children}
-          </div>
+        <main className="flex-1 overflow-y-auto bg-slate-50">
+          {children}
         </main>
       </div>
     </div>

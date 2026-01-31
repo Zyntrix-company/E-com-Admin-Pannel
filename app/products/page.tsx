@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
-import { Plus, Edit2, Trash2, Eye, EyeOff } from "lucide-react"
+import { Plus, Edit2, Trash2, Eye, EyeOff, Package, AlertTriangle, XCircle } from "lucide-react"
 import { ProductDialog } from "@/components/product-dialog"
 import {
   Dialog,
@@ -44,6 +44,8 @@ interface Product {
   tax?: number
 }
 
+type TabType = "all" | "low-stock" | "out-of-stock"
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -55,6 +57,7 @@ export default function ProductsPage() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [activeTab, setActiveTab] = useState<TabType>("all")
   const { toast } = useToast()
   const router = useRouter()
 
@@ -221,6 +224,30 @@ export default function ProductsPage() {
       product.category.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
+  // Get low stock products (any variant with quantity < 10 but > 0)
+  const lowStockProducts = filteredProducts.filter((product) =>
+    product.variants.some((variant) => variant.quantity > 0 && variant.quantity < 10)
+  )
+
+  // Get out of stock products (all variants have quantity === 0)
+  const outOfStockProducts = filteredProducts.filter((product) =>
+    product.variants.length > 0 && product.variants.every((variant) => variant.quantity === 0)
+  )
+
+  // Get products to display based on active tab
+  const displayProducts =
+    activeTab === "low-stock"
+      ? lowStockProducts
+      : activeTab === "out-of-stock"
+        ? outOfStockProducts
+        : filteredProducts
+
+  const tabs = [
+    { id: "all" as TabType, label: "All Products", icon: Package, count: filteredProducts.length },
+    { id: "low-stock" as TabType, label: "Low Stock", icon: AlertTriangle, count: lowStockProducts.length },
+    { id: "out-of-stock" as TabType, label: "Out of Stock", icon: XCircle, count: outOfStockProducts.length },
+  ]
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -248,11 +275,50 @@ export default function ProductsPage() {
           </CardContent>
         </Card>
 
+        {/* Tabs Navigation */}
+        <div className="border-b border-border">
+          <div className="flex gap-2 overflow-x-auto">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${isActive
+                      ? "border-primary text-primary font-medium"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-xs font-medium ${isActive
+                        ? "bg-primary/10 text-primary"
+                        : "bg-secondary text-muted-foreground"
+                      }`}
+                  >
+                    {tab.count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         {/* Products Table */}
         <Card>
           <CardHeader>
-            <CardTitle>Product List</CardTitle>
-            <CardDescription>Total: {filteredProducts.length} products</CardDescription>
+            <CardTitle>
+              {activeTab === "all" && "All Products"}
+              {activeTab === "low-stock" && "Low Stock Products"}
+              {activeTab === "out-of-stock" && "Out of Stock Products"}
+            </CardTitle>
+            <CardDescription>
+              {activeTab === "all" && `Total: ${displayProducts.length} products`}
+              {activeTab === "low-stock" && `${displayProducts.length} product(s) with low inventory (less than 10 units)`}
+              {activeTab === "out-of-stock" && `${displayProducts.length} product(s) not available in stock`}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -267,9 +333,13 @@ export default function ProductsPage() {
                   </div>
                 ))}
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : displayProducts.length === 0 ? (
               <div className="text-center py-12">
-                <p className="text-muted-foreground">No products found</p>
+                <p className="text-muted-foreground">
+                  {activeTab === "all" && "No products found"}
+                  {activeTab === "low-stock" && "No low stock products"}
+                  {activeTab === "out-of-stock" && "No out of stock products"}
+                </p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -280,92 +350,126 @@ export default function ProductsPage() {
                       <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Category</th>
                       <th className="text-left py-3 px-4 font-medium text-sm">Variants</th>
+                      {activeTab !== "all" && (
+                        <th className="text-left py-3 px-4 font-medium text-sm">Stock Status</th>
+                      )}
                       <th className="text-left py-3 px-4 font-medium text-sm">Tax (%)</th>
                       <th className="text-center py-3 px-4 font-medium text-sm">Status</th>
                       <th className="text-right py-3 px-4 font-medium text-sm">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredProducts.map((product) => (
-                      <tr
-                        key={product.id}
-                        className="border-b border-border hover:bg-secondary/30 transition-colors cursor-pointer"
-                        onClick={() => {
-                          setDetailsProduct(product)
-                          setDetailsMediaIndex(0)
-                          setDetailsDialogOpen(true)
-                        }}
-                      >
-                        <td className="py-4 px-4">
-                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary/30 flex-shrink-0">
-                            {product.images && product.images.length > 0 ? (
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
-                                No Image
+                    {displayProducts.map((product) => {
+                      const lowStockVariants = product.variants.filter(
+                        (v) => v.quantity > 0 && v.quantity < 10
+                      )
+                      const outOfStockVariants = product.variants.filter(
+                        (v) => v.quantity === 0
+                      )
+
+                      return (
+                        <tr
+                          key={product.id}
+                          className="border-b border-border hover:bg-secondary/30 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setDetailsProduct(product)
+                            setDetailsMediaIndex(0)
+                            setDetailsDialogOpen(true)
+                          }}
+                        >
+                          <td className="py-4 px-4">
+                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary/30 flex-shrink-0">
+                              {product.images && product.images.length > 0 ? (
+                                <img
+                                  src={product.images[0]}
+                                  alt={product.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                                  No Image
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <p className="font-medium">{product.name}</p>
+                          </td>
+                          <td className="py-4 px-4 text-sm text-muted-foreground">{product.category}</td>
+                          <td className="py-4 px-4 text-sm">
+                            <span className="text-xs bg-secondary/50 px-2 py-1 rounded">
+                              {product.variants.length} variant(s)
+                            </span>
+                          </td>
+                          {activeTab !== "all" && (
+                            <td className="py-4 px-4">
+                              <div className="flex flex-wrap gap-1">
+                                {activeTab === "low-stock" && lowStockVariants.map((variant, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs font-medium"
+                                  >
+                                    {variant.label}: {variant.quantity} left
+                                  </div>
+                                ))}
+                                {activeTab === "out-of-stock" && outOfStockVariants.map((variant, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-xs font-medium"
+                                  >
+                                    {variant.label}: Out
+                                  </div>
+                                ))}
                               </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <p className="font-medium">{product.name}</p>
-                        </td>
-                        <td className="py-4 px-4 text-sm text-muted-foreground">{product.category}</td>
-                        <td className="py-4 px-4 text-sm">
-                          <span className="text-xs bg-secondary/50 px-2 py-1 rounded">
-                            {product.variants.length} variant(s)
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-sm font-medium text-primary">
-                          {product.tax || 0}%
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleToggleStatus(product)
-                            }}
-                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${product.isAvailable
-                              ? "bg-green-100/80 text-green-700 hover:bg-green-200/80"
-                              : "bg-gray-100/80 text-gray-500 hover:bg-gray-200/80"
-                              }`}
-                            title={product.isAvailable ? "Click to disable" : "Click to enable"}
-                          >
-                            {product.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                          </button>
-                        </td>
-                        <td className="py-4 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                            </td>
+                          )}
+                          <td className="py-4 px-4 text-sm font-medium text-primary">
+                            {product.tax || 0}%
+                          </td>
+                          <td className="py-4 px-4 text-center">
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                router.push(`/products/edit/${product.id}`)
+                                handleToggleStatus(product)
                               }}
+                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${product.isAvailable
+                                ? "bg-green-100/80 text-green-700 hover:bg-green-200/80"
+                                : "bg-gray-100/80 text-gray-500 hover:bg-gray-200/80"
+                                }`}
+                              title={product.isAvailable ? "Click to disable" : "Click to enable"}
                             >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                setProductToDelete(product)
-                                setDeleteDialogOpen(true)
-                              }}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                              {product.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                            </button>
+                          </td>
+                          <td className="py-4 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  router.push(`/products/edit/${product.id}`)
+                                }}
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setProductToDelete(product)
+                                  setDeleteDialogOpen(true)
+                                }}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>

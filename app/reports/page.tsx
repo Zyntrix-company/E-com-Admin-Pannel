@@ -13,15 +13,56 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export default function ReportsPage() {
     const [month, setMonth] = useState(new Date().getMonth() + 1 + "")
     const [year, setYear] = useState(new Date().getFullYear() + "")
+    const [selectedState, setSelectedState] = useState("all")
     const [isLoading, setIsLoading] = useState(false)
     const [reportData, setReportData] = useState<any[]>([])
     const [searchOrderId, setSearchOrderId] = useState("")
     const { toast } = useToast()
 
+    const indianStates = [
+        { code: "AN", name: "Andaman and Nicobar Islands" },
+        { code: "AP", name: "Andhra Pradesh" },
+        { code: "AR", name: "Arunachal Pradesh" },
+        { code: "AS", name: "Assam" },
+        { code: "BR", name: "Bihar" },
+        { code: "CH", name: "Chandigarh" },
+        { code: "CT", name: "Chhattisgarh" },
+        { code: "DN", name: "Dadra and Nagar Haveli" },
+        { code: "DD", name: "Daman and Diu" },
+        { code: "DL", name: "Delhi" },
+        { code: "GA", name: "Goa" },
+        { code: "GJ", name: "Gujarat" },
+        { code: "HR", name: "Haryana" },
+        { code: "HP", name: "Himachal Pradesh" },
+        { code: "JK", name: "Jammu and Kashmir" },
+        { code: "JH", name: "Jharkhand" },
+        { code: "KA", name: "Karnataka" },
+        { code: "KL", name: "Kerala" },
+        { code: "LA", name: "Ladakh" },
+        { code: "LD", name: "Lakshadweep" },
+        { code: "MP", name: "Madhya Pradesh" },
+        { code: "MH", name: "Maharashtra" },
+        { code: "MN", name: "Manipur" },
+        { code: "ML", name: "Meghalaya" },
+        { code: "MZ", name: "Mizoram" },
+        { code: "NL", name: "Nagaland" },
+        { code: "OR", name: "Odisha" },
+        { code: "PY", name: "Puducherry" },
+        { code: "PB", name: "Punjab" },
+        { code: "RJ", name: "Rajasthan" },
+        { code: "SK", name: "Sikkim" },
+        { code: "TN", name: "Tamil Nadu" },
+        { code: "TG", name: "Telangana" },
+        { code: "TR", name: "Tripura" },
+        { code: "UP", name: "Uttar Pradesh" },
+        { code: "UT", name: "Uttarakhand" },
+        { code: "WB", name: "West Bengal" },
+    ]
+
     const fetchGSTReport = async () => {
         setIsLoading(true)
         try {
-            const response = await axiosInstance.get(`/admin/reports/gst?month=${month}&year=${year}`)
+            const response = await axiosInstance.get(`/admin/reports/gst?month=${month}&year=${year}&state=${selectedState}`)
             setReportData(response.data.data)
         } catch (error) {
             toast({
@@ -36,17 +77,17 @@ export default function ReportsPage() {
 
     useEffect(() => {
         fetchGSTReport()
-    }, [month, year])
+    }, [month, year, selectedState])
 
     const handleDownloadCSV = async () => {
         try {
-            const response = await axiosInstance.get(`/admin/reports/gst/download?month=${month}&year=${year}`, {
+            const response = await axiosInstance.get(`/admin/reports/gst/download?month=${month}&year=${year}&state=${selectedState}`, {
                 responseType: 'blob'
             })
             const url = window.URL.createObjectURL(new Blob([response.data]))
             const link = document.createElement('a')
             link.href = url
-            link.setAttribute('download', `gst-report-${month}-${year}.csv`)
+            link.setAttribute('download', `gst-report-${month}-${year}${selectedState !== 'all' ? `-${selectedState}` : ''}.csv`)
             document.body.appendChild(link)
             link.click()
             link.remove()
@@ -161,6 +202,20 @@ export default function ReportsPage() {
                                         <SelectContent>
                                             {years.map(y => (
                                                 <SelectItem key={y} value={y} className="font-bold">{y}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="w-48">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-primary/50 mb-1.5 block">Select State</label>
+                                    <Select value={selectedState} onValueChange={setSelectedState}>
+                                        <SelectTrigger className="bg-white border-primary/10 rounded-xl font-bold">
+                                            <SelectValue placeholder="All States" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all" className="font-bold">All States</SelectItem>
+                                            {indianStates.map(state => (
+                                                <SelectItem key={state.code} value={state.name} className="font-bold">{state.name}</SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
