@@ -13,7 +13,24 @@ import { axiosInstance } from "@/lib/axios"
 import { Plus, X, Loader2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 
-type Variant = { label: string; price: number; mrp: number; quantity: number }
+type Variant = {
+    label: string;
+    price: number;
+    mrp: number;
+    quantity: number;
+}
+
+type Combo = {
+    label: string;
+    price: number;
+    mrp: number;
+    quantity: number;
+    description?: string;
+    issueName?: string;
+    comboProductId?: string;
+    images?: string[];
+    videos?: string[];
+}
 
 type Faq = { question: string; answer: string }
 
@@ -24,6 +41,7 @@ type FormState = {
     mrp: number
     sellingPrice: number
     variants: Variant[]
+    combos: Combo[]
     highlights: string[]
     packOf: number
     asin: string
@@ -51,6 +69,7 @@ export default function EditProductPage() {
         mrp: 0,
         sellingPrice: 0,
         variants: [{ label: "", price: 0, mrp: 0, quantity: 0 }],
+        combos: [],
         highlights: [""],
         packOf: 1,
         asin: "",
@@ -68,6 +87,20 @@ export default function EditProductPage() {
     const [videos, setVideos] = useState<string[]>([])
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isLoading, setIsLoading] = useState(false)
+    const [availableProducts, setAvailableProducts] = useState<any[]>([])
+
+    useEffect(() => {
+        const fetchAvailableProducts = async () => {
+            try {
+                const response = await axiosInstance.get("/admin/products")
+                const list = Array.isArray(response.data) ? response.data : response.data?.products || response.data?.data || []
+                setAvailableProducts(list)
+            } catch (error) {
+                console.error("Failed to fetch products:", error)
+            }
+        }
+        fetchAvailableProducts()
+    }, [])
 
     useEffect(() => {
         if (!productId) {
@@ -118,6 +151,7 @@ export default function EditProductPage() {
                 variants: Array.isArray(product.variants) && product.variants.length > 0
                     ? product.variants
                     : [{ label: "", price: 0, mrp: 0, quantity: 0 }],
+                combos: Array.isArray(product.combos) ? product.combos : [],
                 highlights: Array.isArray(product.highlights) && product.highlights.length > 0
                     ? product.highlights
                     : [""],
@@ -233,13 +267,64 @@ export default function EditProductPage() {
         }))
     }
 
-    const handleVariantChange = (index: number, field: keyof Variant, value: string | number) => {
+    const handleVariantChange = (index: number, field: keyof Variant, value: any) => {
         setFormData((prev) => {
             const nextVariants = [...prev.variants]
             nextVariants[index] = { ...nextVariants[index], [field]: value } as Variant
             return { ...prev, variants: nextVariants }
         })
     }
+
+    const handleAddCombo = () => {
+        setFormData((prev) => ({
+            ...prev,
+            combos: [...prev.combos, { label: "", price: 0, mrp: 0, quantity: 0, description: "" }],
+        }))
+    }
+
+    const handleRemoveCombo = (index: number) => {
+        setFormData((prev) => ({
+            ...prev,
+            combos: prev.combos.filter((_, i) => i !== index),
+        }))
+    }
+
+    const handleComboChange = (index: number, field: keyof Combo, value: any) => {
+        setFormData((prev) => {
+            const nextCombos = [...prev.combos]
+            nextCombos[index] = { ...nextCombos[index], [field]: value } as Combo
+            return { ...prev, combos: nextCombos }
+        })
+    }
+
+    const handleComboImagesChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+
+        try {
+            const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
+            const currentImages = formData.combos[index].images || []
+            handleComboChange(index, "images", [...currentImages, ...next])
+            e.target.value = ""
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to process combo images", variant: "destructive" })
+        }
+    }
+
+    const handleComboVideosChange = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = e.target.files
+        if (!files || files.length === 0) return
+
+        try {
+            const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
+            const currentVideos = formData.combos[index].videos || []
+            handleComboChange(index, "videos", [...currentVideos, ...next])
+            e.target.value = ""
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to process combo videos", variant: "destructive" })
+        }
+    }
+
 
     const handleAddHighlight = () => {
         setFormData((prev) => ({ ...prev, highlights: [...prev.highlights, ""] }))
@@ -304,6 +389,7 @@ export default function EditProductPage() {
             ingredients: formData.ingredients,
             usageTiming: formData.usageTiming,
             variants: formData.variants,
+            combos: formData.combos,
             tax: formData.tax,
         }
     }, [formData, images, videos])
@@ -350,6 +436,7 @@ export default function EditProductPage() {
             mrp: formData.mrp,
             sellingPrice: formData.sellingPrice,
             variants: formData.variants,
+            combos: formData.combos,
             images,
             highlights: formData.highlights.map((h) => h.trim()).filter(Boolean),
             packOf: formData.packOf,
@@ -677,10 +764,10 @@ export default function EditProductPage() {
 
                                 <Card>
                                     <CardHeader>
-                                        <CardTitle className="text-base">Variants</CardTitle>
-                                        <CardDescription>Add pricing and quantity variants</CardDescription>
+                                        <CardTitle className="text-base">Product Variants</CardTitle>
+                                        <CardDescription>Simple pricing/quantity options (e.g. 1kg, 2L)</CardDescription>
                                     </CardHeader>
-                                    <CardContent className="space-y-3">
+                                    <CardContent className="space-y-4">
                                         {formData.variants.map((variant, index) => (
                                             <div key={index} className="p-4 border border-border rounded-lg space-y-3 bg-secondary/5">
                                                 <div className="flex items-start justify-between gap-4">
@@ -726,17 +813,111 @@ export default function EditProductPage() {
                                                         </div>
                                                     </div>
                                                     {formData.variants.length > 1 && (
-                                                        <Button type="button" variant="outline" onClick={() => handleRemoveVariant(index)}>
+                                                        <Button type="button" variant="outline" size="icon" onClick={() => handleRemoveVariant(index)}>
                                                             <X className="w-4 h-4" />
                                                         </Button>
                                                     )}
                                                 </div>
                                             </div>
                                         ))}
-
                                         <Button type="button" variant="outline" className="gap-2" onClick={handleAddVariant}>
                                             <Plus className="w-4 h-4" />
                                             Add Variant
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base text-secondary">Health Goal Combos</CardTitle>
+                                        <CardDescription>Curated treatment plans for specific issues</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {formData.combos.map((combo, index) => (
+                                            <div key={index} className="p-5 border border-secondary/20 rounded-xl space-y-4 bg-secondary/5">
+                                                <div className="flex items-start justify-between gap-4">
+                                                    <div className="flex-1 space-y-4">
+                                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                                                            <div>
+                                                                <label className="text-xs font-bold text-secondary uppercase">Label</label>
+                                                                <Input value={combo.label} onChange={(e) => handleComboChange(index, "label", e.target.value)} placeholder="e.g., Gut Health Plan" required />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs font-bold text-secondary uppercase">Price</label>
+                                                                <Input type="number" value={combo.price} onChange={(e) => handleComboChange(index, "price", Number.parseFloat(e.target.value) || 0)} placeholder="0" required />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs font-bold text-secondary uppercase">MRP</label>
+                                                                <Input type="number" value={combo.mrp} onChange={(e) => handleComboChange(index, "mrp", Number.parseFloat(e.target.value) || 0)} placeholder="0" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs font-bold text-secondary uppercase">Stock</label>
+                                                                <Input type="number" value={combo.quantity} onChange={(e) => handleComboChange(index, "quantity", Number.parseInt(e.target.value) || 0)} placeholder="0" required />
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <label className="text-xs font-bold text-secondary uppercase">Health Issue</label>
+                                                                <Input value={combo.issueName || ""} onChange={(e) => handleComboChange(index, "issueName", e.target.value)} placeholder="e.g., Kidney issues" />
+                                                            </div>
+                                                            <div>
+                                                                <label className="text-xs font-bold text-secondary uppercase">Link Product</label>
+                                                                <select
+                                                                    value={combo.comboProductId && typeof combo.comboProductId === 'object' ? (combo.comboProductId as any)._id : combo.comboProductId || ""}
+                                                                    onChange={(e) => handleComboChange(index, "comboProductId", e.target.value)}
+                                                                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                                                                >
+                                                                    <option value="">Select Product...</option>
+                                                                    {availableProducts.map((p: any) => (
+                                                                        <option key={p._id || p.id} value={p._id || p.id}>{p.name}</option>
+                                                                    ))}
+                                                                </select>
+                                                            </div>
+                                                        </div>
+
+                                                        <div>
+                                                            <label className="text-xs font-bold text-secondary uppercase">Description</label>
+                                                            <textarea
+                                                                value={combo.description || ""}
+                                                                onChange={(e) => handleComboChange(index, "description", e.target.value)}
+                                                                className="w-full p-3 rounded-md border text-sm"
+                                                                rows={2}
+                                                                placeholder="Describe the combo benefits..."
+                                                            />
+                                                        </div>
+
+                                                        <div className="space-y-3">
+                                                            <label className="text-xs font-bold text-secondary uppercase">Combo Media</label>
+                                                            <div className="grid grid-cols-2 gap-4">
+                                                                <Input type="file" accept="image/*" multiple onChange={(e) => handleComboImagesChange(index, e)} />
+                                                                <Input type="file" accept="video/*" multiple onChange={(e) => handleComboVideosChange(index, e)} />
+                                                            </div>
+                                                            <div className="flex gap-2 overflow-x-auto py-2">
+                                                                {combo.images?.map((img, i) => (
+                                                                    <div key={i} className="relative w-16 h-16 border rounded bg-white p-1">
+                                                                        <img src={img} className="w-full h-full object-contain" />
+                                                                        <button type="button" onClick={() => handleComboChange(index, "images", combo.images?.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                                                                    </div>
+                                                                ))}
+                                                                {combo.videos?.map((vid, i) => (
+                                                                    <div key={i} className="relative w-16 h-16 border rounded bg-black flex items-center justify-center">
+                                                                        <div className="text-[8px] text-white uppercase font-bold">Video</div>
+                                                                        <button type="button" onClick={() => handleComboChange(index, "videos", combo.videos?.filter((_, idx) => idx !== i))} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5"><X className="w-3 h-3" /></button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveCombo(index)} className="text-red-500">
+                                                        <X className="w-5 h-5" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <Button type="button" variant="outline" className="gap-2 border-secondary text-secondary hover:bg-secondary/5" onClick={handleAddCombo}>
+                                            <Plus className="w-4 h-4" />
+                                            Add Health Combo
                                         </Button>
                                     </CardContent>
                                 </Card>
