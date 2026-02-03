@@ -10,7 +10,12 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
-import { Plus, X, Search, Check, Package, Image as ImageIcon, Film, Loader2 } from "lucide-react"
+import { Plus, X, Search, Check, Package, Image as ImageIcon, Film, Loader2, ArrowLeft, ArrowRight } from "lucide-react"
+
+interface MediaItem {
+    type: 'image' | 'video'
+    url: string
+}
 
 interface Product {
     id: string
@@ -35,8 +40,7 @@ export default function EditCataloguePage() {
         products: [] as string[],
     })
 
-    const [images, setImages] = useState<string[]>([])
-    const [videos, setVideos] = useState<string[]>([])
+    const [media, setMedia] = useState<MediaItem[]>([])
     const [activeMediaIndex, setActiveMediaIndex] = useState(0)
     const [isLoading, setIsLoading] = useState(false)
     const [isInitialLoading, setIsInitialLoading] = useState(true)
@@ -61,8 +65,14 @@ export default function EditCataloguePage() {
                 sellingPrice: c.sellingPrice,
                 products: c.products.map((p: any) => typeof p === 'string' ? p : (p._id || p.id)),
             })
-            setImages(c.images || [])
-            setVideos(c.videos || [])
+            if (c.media && Array.isArray(c.media) && c.media.length > 0) {
+                setMedia(c.media)
+            } else {
+                setMedia([
+                    ...(c.images || []).map((url: string) => ({ type: 'image' as const, url })),
+                    ...(c.videos || []).map((url: string) => ({ type: 'video' as const, url }))
+                ])
+            }
         } catch (error) {
             toast({ title: "Error", description: "Failed to load catalogue", variant: "destructive" })
             router.push("/catalogues")
@@ -99,7 +109,8 @@ export default function EditCataloguePage() {
         if (!files || files.length === 0) return
         try {
             const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
-            setImages((prev) => [...prev, ...next].slice(0, 10))
+            const newMedia = next.map(url => ({ type: 'image' as const, url }))
+            setMedia((prev) => [...prev, ...newMedia])
             e.target.value = ""
         } catch (error) {
             toast({ title: "Error", description: "Failed to process images", variant: "destructive" })
@@ -111,10 +122,28 @@ export default function EditCataloguePage() {
         if (!files || files.length === 0) return
         try {
             const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
-            setVideos((prev) => [...prev, ...next])
+            const newMedia = next.map(url => ({ type: 'video' as const, url }))
+            setMedia((prev) => [...prev, ...newMedia])
             e.target.value = ""
         } catch (error) {
             toast({ title: "Error", description: "Failed to process video", variant: "destructive" })
+        }
+    }
+
+    const moveMedia = (index: number, direction: 'left' | 'right') => {
+        if (direction === 'left' && index === 0) return
+        if (direction === 'right' && index === media.length - 1) return
+
+        const newMedia = [...media]
+        const targetIndex = direction === 'left' ? index - 1 : index + 1
+            ;[newMedia[index], newMedia[targetIndex]] = [newMedia[targetIndex], newMedia[index]]
+        setMedia(newMedia)
+    }
+
+    const removeMedia = (index: number) => {
+        setMedia(prev => prev.filter((_, i) => i !== index))
+        if (activeMediaIndex >= index && activeMediaIndex > 0) {
+            setActiveMediaIndex(prev => prev - 1)
         }
     }
 
@@ -128,10 +157,6 @@ export default function EditCataloguePage() {
     }
 
     const preview = useMemo(() => {
-        const media = [
-            ...images.map((src) => ({ type: "image" as const, src })),
-            ...videos.map((src) => ({ type: "video" as const, src })),
-        ]
         const selectedProductDetails = allProducts.filter(p => formData.products.includes(p.id))
 
         return {
@@ -143,7 +168,7 @@ export default function EditCataloguePage() {
             media,
             products: selectedProductDetails
         }
-    }, [formData, images, videos, allProducts])
+    }, [formData, media, allProducts])
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -152,7 +177,7 @@ export default function EditCataloguePage() {
 
         setIsLoading(true)
         try {
-            await axiosInstance.put(`/admin/catalogues/${catalogueId}`, { ...formData, images, videos })
+            await axiosInstance.put(`/admin/catalogues/${catalogueId}`, { ...formData, media })
             toast({ title: "Success", description: "Catalogue updated successfully" })
             router.push("/catalogues")
         } catch (error: any) {
@@ -285,8 +310,8 @@ export default function EditCataloguePage() {
                                                 key={product.id}
                                                 onClick={() => toggleProduct(product.id)}
                                                 className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${formData.products.includes(product.id)
-                                                        ? "border-primary bg-primary/5 shadow-sm"
-                                                        : "border-transparent hover:bg-secondary/50"
+                                                    ? "border-primary bg-primary/5 shadow-sm"
+                                                    : "border-transparent hover:bg-secondary/50"
                                                     }`}
                                             >
                                                 <div className="w-12 h-12 rounded-lg border overflow-hidden shrink-0 bg-white">
@@ -338,21 +363,41 @@ export default function EditCataloguePage() {
                                 {preview.media.length > 0 && (
                                     <div className="grid grid-cols-4 gap-2">
                                         {preview.media.map((m, i) => (
-                                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-border group">
+                                            <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-border group bg-secondary/10">
                                                 {m.type === 'video' ? (
-                                                    <video src={m.src} className="w-full h-full object-cover" />
+                                                    <video src={m.url} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <img src={m.src} className="w-full h-full object-cover" />
+                                                    <img src={m.url} className="w-full h-full object-cover" />
                                                 )}
-                                                <button
-                                                    onClick={() => {
-                                                        if (m.type === 'image') setImages(images.filter((_, idx) => images[idx] !== m.src))
-                                                        else setVideos(videos.filter((_, idx) => videos[idx] !== m.src))
-                                                    }}
-                                                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <X className="w-3 h-3" />
-                                                </button>
+
+                                                {/* Reorder and Remove Controls */}
+                                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1">
+                                                    <div className="flex justify-between">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); moveMedia(i, 'left'); }}
+                                                            disabled={i === 0}
+                                                            className="p-1 text-white hover:text-primary disabled:opacity-30"
+                                                        >
+                                                            <ArrowLeft className="w-4 h-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); removeMedia(i); }}
+                                                            className="p-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); moveMedia(i, 'right'); }}
+                                                            disabled={i === preview.media.length - 1}
+                                                            className="p-1 text-white hover:text-primary disabled:opacity-30"
+                                                        >
+                                                            <ArrowRight className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                    <div className="text-[10px] text-white font-mono text-center bg-black/50 rounded py-0.5">
+                                                        {i + 1}
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -368,9 +413,9 @@ export default function EditCataloguePage() {
                                 {preview.media.length > 0 ? (
                                     <>
                                         {preview.media[activeMediaIndex].type === 'video' ? (
-                                            <video src={preview.media[activeMediaIndex].src} controls className="w-full h-full object-cover" />
+                                            <video src={preview.media[activeMediaIndex].url} controls className="w-full h-full object-cover" />
                                         ) : (
-                                            <img src={preview.media[activeMediaIndex].src} className="w-full h-full object-cover" />
+                                            <img src={preview.media[activeMediaIndex].url} className="w-full h-full object-cover" />
                                         )}
                                     </>
                                 ) : (

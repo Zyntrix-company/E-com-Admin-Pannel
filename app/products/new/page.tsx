@@ -10,7 +10,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
-import { Plus, X } from "lucide-react"
+import { Plus, X, ArrowLeft, ArrowRight } from "lucide-react"
+
+interface MediaItem {
+  type: 'image' | 'video'
+  url: string
+}
 
 type Variant = {
   label: string;
@@ -79,8 +84,7 @@ export default function NewProductPage() {
     tax: 0,
   })
 
-  const [images, setImages] = useState<string[]>([])
-  const [videos, setVideos] = useState<string[]>([])
+  const [media, setMedia] = useState<MediaItem[]>([])
   const [activeMediaIndex, setActiveMediaIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
@@ -118,17 +122,8 @@ export default function NewProductPage() {
 
     try {
       const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
-      setImages((prev) => {
-        const combined = [...prev, ...next]
-        if (combined.length > 10) {
-          toast({
-            title: "Warning",
-            description: "Only the first 10 images will be saved",
-          })
-          return combined.slice(0, 10)
-        }
-        return combined
-      })
+      const newMedia = next.map(url => ({ type: 'image' as const, url }))
+      setMedia((prev) => [...prev, ...newMedia])
       e.target.value = ""
     } catch (error) {
       toast({
@@ -145,7 +140,8 @@ export default function NewProductPage() {
 
     try {
       const next = await Promise.all(Array.from(files).map(readFileAsDataUrl))
-      setVideos((prev) => [...prev, ...next])
+      const newMedia = next.map(url => ({ type: 'video' as const, url }))
+      setMedia((prev) => [...prev, ...newMedia])
       e.target.value = ""
     } catch (error) {
       toast({
@@ -153,6 +149,23 @@ export default function NewProductPage() {
         description: error instanceof Error ? error.message : "Failed to process video",
         variant: "destructive",
       })
+    }
+  }
+
+  const moveMedia = (index: number, direction: 'left' | 'right') => {
+    if (direction === 'left' && index === 0) return
+    if (direction === 'right' && index === media.length - 1) return
+
+    const newMedia = [...media]
+    const targetIndex = direction === 'left' ? index - 1 : index + 1
+      ;[newMedia[index], newMedia[targetIndex]] = [newMedia[targetIndex], newMedia[index]]
+    setMedia(newMedia)
+  }
+
+  const removeMedia = (index: number) => {
+    setMedia(prev => prev.filter((_, i) => i !== index))
+    if (activeMediaIndex >= index && activeMediaIndex > 0) {
+      setActiveMediaIndex(prev => prev - 1)
     }
   }
 
@@ -267,10 +280,7 @@ export default function NewProductPage() {
       .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
       .filter((f) => f.question || f.answer)
 
-    const media = [
-      ...images.map((src) => ({ type: "image" as const, src })),
-      ...videos.map((src) => ({ type: "video" as const, src })),
-    ]
+    const mediaContent = media.length > 0 ? media : []
 
     return {
       title: formData.name,
@@ -280,9 +290,7 @@ export default function NewProductPage() {
       description: formData.description,
       highlights: cleanHighlights,
       faqs: cleanFaqs,
-      images,
-      videos,
-      media,
+      media: mediaContent,
       rating: formData.rating,
       reviewCount: formData.reviewCount,
       packOf: formData.packOf,
@@ -295,7 +303,7 @@ export default function NewProductPage() {
       combos: formData.combos,
       tax: formData.tax,
     }
-  }, [formData, images, videos])
+  }, [formData, media])
 
   useEffect(() => {
     setActiveMediaIndex((prev) => {
@@ -318,7 +326,8 @@ export default function NewProductPage() {
         variants: formData.variants,
         combos: formData.combos,
         tax: formData.tax,
-        images,
+        images: [], // Deprecated in fallback but keeping for type safety
+        media,
         isAvailable: true,
       }
 
@@ -367,7 +376,8 @@ export default function NewProductPage() {
       sellingPrice: formData.sellingPrice,
       variants: formData.variants,
       combos: formData.combos,
-      images,
+      images: [], // Now handled in backend split logic or unified media
+      media,
       isAvailable: true,
       highlights: formData.highlights.map((h) => h.trim()).filter(Boolean),
       packOf: formData.packOf,
@@ -381,8 +391,8 @@ export default function NewProductPage() {
       faqs: formData.faqs
         .map((f) => ({ question: f.question.trim(), answer: f.answer.trim() }))
         .filter((f) => f.question || f.answer),
-      videos: videos.length > 0 ? videos : undefined,
-      video: videos[0] || undefined,
+      videos: undefined,
+      video: undefined,
       tax: formData.tax,
     }
 
@@ -600,51 +610,64 @@ export default function NewProductPage() {
                         placeholder="1"
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="text-sm font-medium block mb-2">Images</label>
                       <Input type="file" accept="image/*" multiple onChange={handleImagesChange} />
                     </div>
+                    <div>
+                      <label className="text-sm font-medium block mb-2">Video</label>
+                      <Input type="file" accept="video/*" multiple onChange={handleVideoChange} />
+                    </div>
                   </div>
 
-                  {images.length > 0 && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {images.map((src, index) => (
-                        <div key={`${src}-${index}`} className="relative border border-border rounded-md overflow-hidden">
-                          <img src={src} alt={`Product image ${index + 1}`} className="w-full h-28 object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => setImages((prev) => prev.filter((_, i) => i !== index))}
-                            className="absolute top-1 right-1 p-1 rounded bg-background/80 hover:bg-background"
-                            aria-label="Remove image"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
+                  {media.length > 0 && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {media.map((item, index) => (
+                        <div key={`${item.url}-${index}`} className="relative border border-border rounded-md overflow-hidden bg-secondary/10 group aspect-square">
+                          {item.type === 'video' ? (
+                            <video src={item.url} className="w-full h-full object-cover" />
+                          ) : (
+                            <img src={item.url} alt={`Media ${index + 1}`} className="w-full h-full object-cover" />
+                          )}
+
+                          {/* Reorder and Remove Controls */}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1">
+                            <div className="flex justify-between">
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); moveMedia(index, 'left'); }}
+                                disabled={index === 0}
+                                className="p-1 text-white hover:text-primary disabled:opacity-30"
+                              >
+                                <ArrowLeft className="w-4 h-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); removeMedia(index); }}
+                                className="p-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => { e.stopPropagation(); moveMedia(index, 'right'); }}
+                                disabled={index === media.length - 1}
+                                className="p-1 text-white hover:text-primary disabled:opacity-30"
+                              >
+                                <ArrowRight className="w-4 h-4" />
+                              </button>
+                            </div>
+                            <div className="text-[10px] text-white font-mono text-center bg-black/50 rounded py-0.5">
+                              {index + 1}
+                            </div>
+                          </div>
                         </div>
                       ))}
                     </div>
                   )}
-
-                  <div>
-                    <label className="text-sm font-medium block mb-2">Video Upload (optional)</label>
-                    <Input type="file" accept="video/*" multiple onChange={handleVideoChange} />
-                    {videos.length > 0 && (
-                      <div className="mt-3 space-y-3">
-                        {videos.map((src, index) => (
-                          <div key={`${src}-${index}`} className="relative border border-border rounded-md overflow-hidden">
-                            <video src={src} controls className="w-full h-44 object-cover" />
-                            <button
-                              type="button"
-                              onClick={() => setVideos((prev) => prev.filter((_, i) => i !== index))}
-                              className="absolute top-2 right-2 p-2 rounded bg-background/80 hover:bg-background"
-                              aria-label="Remove video"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <Card>
@@ -897,10 +920,10 @@ export default function NewProductPage() {
                 ) : (
                   <div className="relative">
                     {preview.media[activeMediaIndex]?.type === "video" ? (
-                      <video src={preview.media[activeMediaIndex]?.src} controls className="w-full h-96 object-contain bg-black" />
+                      <video src={preview.media[activeMediaIndex]?.url} controls className="w-full h-96 object-contain bg-black" />
                     ) : (
                       <img
-                        src={preview.media[activeMediaIndex]?.src}
+                        src={preview.media[activeMediaIndex]?.url}
                         alt={preview.title || "Product"}
                         className="w-full h-96 object-contain bg-secondary/10"
                       />
@@ -913,16 +936,16 @@ export default function NewProductPage() {
                   <div className="flex items-center gap-2 p-3 overflow-x-auto bg-secondary/10">
                     {preview.media.map((m, i) => (
                       <button
-                        key={`${m.type}-${m.src}-${i}`}
+                        key={`${m.type}-${m.url}-${i}`}
                         type="button"
                         onClick={() => setActiveMediaIndex(i)}
                         className={`flex-shrink-0 w-20 h-20 border-2 rounded-md overflow-hidden transition-all ${i === activeMediaIndex ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"
                           }`}
                       >
                         {m.type === "video" ? (
-                          <video src={m.src} className="w-full h-full object-cover" />
+                          <video src={m.url} className="w-full h-full object-cover" />
                         ) : (
-                          <img src={m.src} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" />
+                          <img src={m.url} alt={`Thumbnail ${i + 1}`} className="w-full h-full object-cover" />
                         )}
                       </button>
                     ))}
@@ -943,7 +966,7 @@ export default function NewProductPage() {
                 </div>
                 <div className="text-sm text-muted-foreground">Pack of: {preview.packOf || 1}</div>
                 <div className="text-xs text-muted-foreground">
-                  Images: {preview.images.length} | Videos: {preview.videos.length}
+                  Media items: {preview.media.length}
                 </div>
                 {(preview.asin || preview.sku) && (
                   <div className="text-xs text-muted-foreground">
