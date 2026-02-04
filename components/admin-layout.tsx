@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import {
   Menu, X, LogOut, Settings, Search, Bell,
   LayoutDashboard, Package, Tag, Users, ShoppingBag,
-  Cog, BookOpen, BarChart3, FileCheck
+  Cog, BookOpen, BarChart3, FileCheck, Star
 } from "lucide-react"
 
 interface AdminLayoutProps {
@@ -25,6 +25,7 @@ const navigationItems = [
   { href: "/users", label: "Users", icon: Users },
   { href: "/orders", label: "Orders", icon: ShoppingBag },
   { href: "/orders/process", label: "Process Orders", icon: Cog },
+  { href: "/reviews", label: "Reviews", icon: Star },
   { href: "/catalogues", label: "Catalogues", icon: BookOpen },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/orders/audit", label: "Audit", icon: FileCheck },

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
-import { Loader2, Percent, Save, Truck, User, Mail, Phone, MapPin, Home, Plus, Trash2, CheckCircle2, FileText, Printer, ExternalLink } from "lucide-react"
+import { Loader2, Percent, Save, Truck, User, Mail, Phone, MapPin, Home, Plus, Trash2, CheckCircle2, FileText, Printer, ExternalLink, MessageSquare } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import Link from "next/link"
@@ -58,17 +58,27 @@ export default function SettingsPage() {
         orderId: "MANUAL-" + Math.floor(1000 + Math.random() * 9000)
     })
 
+    // --- Communication Settings ---
+    const [communicationSettings, setCommunicationSettings] = useState({
+        sellerCommunityUrl: "",
+        watiApiKey: "",
+        watiApiEndpoint: "",
+        watiPhoneNumber: ""
+    })
+    const [isSavingCommunication, setIsSavingCommunication] = useState(false)
+
     const { toast } = useToast()
 
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const [taxRes, shippingRes, ownerRes, contactRes, warehouseRes] = await Promise.all([
+                const [taxRes, shippingRes, ownerRes, contactRes, warehouseRes, commRes] = await Promise.all([
                     axiosInstance.get("/admin/tax-settings"),
                     axiosInstance.get("/admin/shipping-settings"),
                     axiosInstance.get("/admin/settings/owner_details"),
                     axiosInstance.get("/admin/settings/contact_details"),
-                    axiosInstance.get("/admin/settings/warehouse_settings")
+                    axiosInstance.get("/admin/settings/warehouse_settings"),
+                    axiosInstance.get("/admin/settings/communication_settings")
                 ])
 
                 if (taxRes.data.success) {
@@ -87,6 +97,14 @@ export default function SettingsPage() {
                     const val = warehouseRes.data.settings.value || { warehouses: [], activeWarehouseId: "" }
                     setWarehouses(val.warehouses || [])
                     setActiveWarehouseId(val.activeWarehouseId || "")
+                }
+                if (commRes.data.success && commRes.data.settings) {
+                    setCommunicationSettings(commRes.data.settings.value || {
+                        sellerCommunityUrl: "",
+                        watiApiKey: "",
+                        watiApiEndpoint: "",
+                        watiPhoneNumber: ""
+                    })
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error)
@@ -194,6 +212,19 @@ export default function SettingsPage() {
         if (activeWarehouseId === id) setActiveWarehouseId("")
     }
 
+    const handleSaveCommunication = async () => {
+        setIsSavingCommunication(true)
+        try {
+            await axiosInstance.put("/admin/settings/communication_settings", { value: communicationSettings })
+            toast({ title: "Success", description: "Communication settings updated successfully" })
+        } catch (error) {
+            toast({ title: "Error", description: "Failed to update communication settings", variant: "destructive" })
+        } finally {
+            setIsSavingCommunication(false)
+        }
+    }
+
+
     const printManualLabel = () => {
         const printWindow = window.open('', '_blank')
         if (!printWindow) return
@@ -265,6 +296,7 @@ export default function SettingsPage() {
                         <TabsTrigger value="general" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest data-[state=active]:bg-slate-100">General</TabsTrigger>
                         <TabsTrigger value="business" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest data-[state=active]:bg-slate-100">Business Details</TabsTrigger>
                         <TabsTrigger value="warehouses" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest data-[state=active]:bg-slate-100">Warehouses</TabsTrigger>
+                        <TabsTrigger value="communication" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest data-[state=active]:bg-slate-100">Communication</TabsTrigger>
                         <TabsTrigger value="labels" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest data-[state=active]:bg-slate-100">Shipping Labels</TabsTrigger>
                     </TabsList>
 
@@ -604,6 +636,111 @@ export default function SettingsPage() {
                                         {isSavingWarehouses ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                                         Save All Changes
                                     </Button>
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    </TabsContent>
+
+                    <TabsContent value="communication" className="space-y-6">
+                        <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white">
+                            <CardHeader className="border-b border-slate-50 bg-slate-50/30">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-green-600/10 rounded-lg">
+                                        <MessageSquare className="w-5 h-5 text-green-600" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-lg font-black uppercase tracking-tight">Communication Settings</CardTitle>
+                                        <CardDescription className="text-xs font-bold text-slate-400">Seller community and WhatsApp integration</CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="pt-6 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Seller Community */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-2 bg-blue-500/10 rounded-lg">
+                                                <User className="w-4 h-4 text-blue-500" />
+                                            </div>
+                                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-700">Seller Community</h3>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Community URL</Label>
+                                            <div className="relative">
+                                                <ExternalLink className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                <Input
+                                                    value={communicationSettings.sellerCommunityUrl}
+                                                    onChange={(e) => setCommunicationSettings({ ...communicationSettings, sellerCommunityUrl: e.target.value })}
+                                                    className="pl-12 rounded-xl border-slate-200 font-bold"
+                                                    placeholder="https://community.example.com"
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 font-medium">Link to your seller community or forum</p>
+                                        </div>
+                                    </div>
+
+                                    {/* WATI WhatsApp */}
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <div className="p-2 bg-green-500/10 rounded-lg">
+                                                <MessageSquare className="w-4 h-4 text-green-500" />
+                                            </div>
+                                            <h3 className="text-sm font-black uppercase tracking-widest text-slate-700">WATI WhatsApp</h3>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">WATI API Key</Label>
+                                                <Input
+                                                    type="password"
+                                                    value={communicationSettings.watiApiKey}
+                                                    onChange={(e) => setCommunicationSettings({ ...communicationSettings, watiApiKey: e.target.value })}
+                                                    className="rounded-xl border-slate-200 font-bold"
+                                                    placeholder="Enter your WATI API key"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">API Endpoint</Label>
+                                                <Input
+                                                    value={communicationSettings.watiApiEndpoint}
+                                                    onChange={(e) => setCommunicationSettings({ ...communicationSettings, watiApiEndpoint: e.target.value })}
+                                                    className="rounded-xl border-slate-200 font-bold"
+                                                    placeholder="https://live-server-XXXX.wati.io"
+                                                />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">WhatsApp Number</Label>
+                                                <div className="relative">
+                                                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                                    <Input
+                                                        value={communicationSettings.watiPhoneNumber}
+                                                        onChange={(e) => setCommunicationSettings({ ...communicationSettings, watiPhoneNumber: e.target.value })}
+                                                        className="pl-12 rounded-xl border-slate-200 font-bold"
+                                                        placeholder="+91 XXXXX XXXXX"
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    onClick={handleSaveCommunication}
+                                    disabled={isSavingCommunication}
+                                    className="w-full rounded-xl bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20 font-black uppercase text-[10px] tracking-widest h-12"
+                                >
+                                    {isSavingCommunication ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                                    Save Communication Settings
+                                </Button>
+                            </CardContent>
+                            <CardFooter className="bg-slate-50/50 p-6 border-t border-slate-100">
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">WATI Integration</p>
+                                    <p className="text-[10px] font-bold text-slate-500">
+                                        WATI is a WhatsApp Business API platform. Get your API credentials from{" "}
+                                        <a href="https://www.wati.io" target="_blank" rel="noopener noreferrer" className="text-green-600 hover:underline">
+                                            wati.io
+                                        </a>
+                                    </p>
                                 </div>
                             </CardFooter>
                         </Card>
