@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Star, CheckCircle2, X, MessageSquare, Trash2, Eye, Filter } from "lucide-react";
-import { toast } from "react-hot-toast";
-import axios from "@/lib/axios";
+import { useToast } from "@/hooks/use-toast";
+import { axiosInstance } from "@/lib/axios";
 
 export default function ReviewsPage() {
-    const [reviews, setReviews] = useState([]);
+    const { toast } = useToast();
+    const [reviews, setReviews] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [statusFilter, setStatusFilter] = useState("pending");
-    const [selectedReview, setSelectedReview] = useState(null);
+    const [selectedReview, setSelectedReview] = useState<any>(null);
     const [showResponseModal, setShowResponseModal] = useState(false);
     const [responseText, setResponseText] = useState("");
     const [stats, setStats] = useState({
@@ -43,14 +44,14 @@ export default function ReviewsPage() {
                 params.append("status", statusFilter);
             }
 
-            const response = await axios.get(`/api/reviews/admin/all?${params}`);
+            const response = await axiosInstance.get(`/api/reviews/admin/all?${params}`);
             if (response.data.success) {
                 setReviews(response.data.data.reviews);
                 setTotalPages(response.data.data.pagination.pages);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching reviews:", error);
-            toast.error("Failed to fetch reviews");
+            toast({ title: "Error", description: "Failed to fetch reviews", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -60,9 +61,9 @@ export default function ReviewsPage() {
         try {
             // Fetch counts for each status
             const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
-                axios.get("/api/reviews/admin/all?status=pending&limit=1"),
-                axios.get("/api/reviews/admin/all?status=approved&limit=1"),
-                axios.get("/api/reviews/admin/all?status=rejected&limit=1")
+                axiosInstance.get("/api/reviews/admin/all?status=pending&limit=1"),
+                axiosInstance.get("/api/reviews/admin/all?status=approved&limit=1"),
+                axiosInstance.get("/api/reviews/admin/all?status=rejected&limit=1")
             ]);
 
             setStats({
@@ -73,68 +74,68 @@ export default function ReviewsPage() {
                     approvedRes.data.data.pagination.total +
                     rejectedRes.data.data.pagination.total
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching stats:", error);
         }
     };
 
-    const moderateReview = async (reviewId, status, rejectionReason = null) => {
+    const moderateReview = async (reviewId: string, status: string, rejectionReason: string | null = null) => {
         try {
-            const response = await axios.patch(`/api/reviews/admin/${reviewId}/moderate`, {
+            const response = await axiosInstance.patch(`/api/reviews/admin/${reviewId}/moderate`, {
                 status,
                 rejectionReason
             });
 
             if (response.data.success) {
-                toast.success(`Review ${status} successfully`);
+                toast({ title: "Success", description: `Review ${status} successfully` });
                 fetchReviews();
                 fetchStats();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error moderating review:", error);
-            toast.error(error.response?.data?.message || "Failed to moderate review");
+            toast({ title: "Error", description: error.response?.data?.message || "Failed to moderate review", variant: "destructive" });
         }
     };
 
-    const addResponse = async (reviewId) => {
+    const addResponse = async (reviewId: string) => {
         if (!responseText.trim()) {
-            toast.error("Please enter a response");
+            toast({ title: "Error", description: "Please enter a response", variant: "destructive" });
             return;
         }
 
         try {
-            const response = await axios.post(`/api/reviews/admin/${reviewId}/response`, {
+            const response = await axiosInstance.post(`/api/reviews/admin/${reviewId}/response`, {
                 comment: responseText
             });
 
             if (response.data.success) {
-                toast.success("Response added successfully");
+                toast({ title: "Success", description: "Response added successfully" });
                 setShowResponseModal(false);
                 setResponseText("");
                 setSelectedReview(null);
                 fetchReviews();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error adding response:", error);
-            toast.error(error.response?.data?.message || "Failed to add response");
+            toast({ title: "Error", description: error.response?.data?.message || "Failed to add response", variant: "destructive" });
         }
     };
 
-    const deleteReview = async (reviewId) => {
+    const deleteReview = async (reviewId: string) => {
         if (!confirm("Are you sure you want to delete this review?")) {
             return;
         }
 
         try {
-            const response = await axios.delete(`/api/reviews/admin/${reviewId}`);
+            const response = await axiosInstance.delete(`/api/reviews/admin/${reviewId}`);
             if (response.data.success) {
-                toast.success("Review deleted successfully");
+                toast({ title: "Success", description: "Review deleted successfully" });
                 fetchReviews();
                 fetchStats();
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error deleting review:", error);
-            toast.error(error.response?.data?.message || "Failed to delete review");
+            toast({ title: "Error", description: error.response?.data?.message || "Failed to delete review", variant: "destructive" });
         }
     };
 
@@ -212,8 +213,8 @@ export default function ReviewsPage() {
                                     setPage(1);
                                 }}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${(status === "all" && !statusFilter) || statusFilter === status
-                                        ? "bg-blue-600 text-white"
-                                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    ? "bg-blue-600 text-white"
+                                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                     }`}
                             >
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -259,8 +260,8 @@ export default function ReviewsPage() {
                                                                 key={i}
                                                                 size={14}
                                                                 className={`${i < review.rating
-                                                                        ? "fill-yellow-400 text-yellow-400"
-                                                                        : "text-gray-200"
+                                                                    ? "fill-yellow-400 text-yellow-400"
+                                                                    : "text-gray-200"
                                                                     }`}
                                                             />
                                                         ))}
@@ -294,7 +295,7 @@ export default function ReviewsPage() {
                                         {/* Media */}
                                         {review.media && review.media.length > 0 && (
                                             <div className="flex gap-2 mb-3">
-                                                {review.media.map((media, index) => (
+                                                {review.media.map((media: any, index: number) => (
                                                     <div
                                                         key={index}
                                                         className="w-20 h-20 rounded-lg overflow-hidden border border-gray-200"
@@ -329,10 +330,10 @@ export default function ReviewsPage() {
                                         <div className="mt-3">
                                             <span
                                                 className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${review.status === "approved"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : review.status === "rejected"
-                                                            ? "bg-red-100 text-red-700"
-                                                            : "bg-orange-100 text-orange-700"
+                                                    ? "bg-green-100 text-green-700"
+                                                    : review.status === "rejected"
+                                                        ? "bg-red-100 text-red-700"
+                                                        : "bg-orange-100 text-orange-700"
                                                     }`}
                                             >
                                                 {review.status.charAt(0).toUpperCase() + review.status.slice(1)}
