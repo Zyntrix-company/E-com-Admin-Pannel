@@ -285,7 +285,7 @@ export default function SettingsPage() {
 
     return (
         <AdminLayout>
-            <div className="space-y-8 max-w-5xl">
+            <div className="space-y-8 max-w-5xl p-5">
                 <div>
                     <h1 className="text-3xl font-black text-slate-800 uppercase tracking-tight">Settings</h1>
                     <p className="text-slate-500 mt-2 font-medium">Manage global application configurations and business details</p>

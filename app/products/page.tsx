@@ -250,7 +250,7 @@ export default function ProductsPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 p-5 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -286,16 +286,16 @@ export default function ProductsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${isActive
-                      ? "border-primary text-primary font-medium"
-                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                    ? "border-primary text-primary font-medium"
+                    : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                     }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ${isActive
-                        ? "bg-primary/10 text-primary"
-                        : "bg-secondary text-muted-foreground"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-secondary text-muted-foreground"
                       }`}
                   >
                     {tab.count}
@@ -345,17 +345,17 @@ export default function ProductsPage() {
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-border">
-                      <th className="text-left py-3 px-4 font-medium text-sm">Photo</th>
-                      <th className="text-left py-3 px-4 font-medium text-sm">Name</th>
-                      <th className="text-left py-3 px-4 font-medium text-sm">Category</th>
-                      <th className="text-left py-3 px-4 font-medium text-sm">Variants</th>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider w-16">Photo</th>
+                      <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Name</th>
+                      <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Category</th>
+                      <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Variants</th>
                       {activeTab !== "all" && (
-                        <th className="text-left py-3 px-4 font-medium text-sm">Stock Status</th>
+                        <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Stock Status</th>
                       )}
-                      <th className="text-left py-3 px-4 font-medium text-sm">Tax (%)</th>
-                      <th className="text-center py-3 px-4 font-medium text-sm">Status</th>
-                      <th className="text-right py-3 px-4 font-medium text-sm">Actions</th>
+                      <th className="text-left py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Tax (%)</th>
+                      <th className="text-center py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Status</th>
+                      <th className="text-right py-2.5 px-4 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -370,44 +370,59 @@ export default function ProductsPage() {
                       return (
                         <tr
                           key={product.id}
-                          className="border-b border-border hover:bg-secondary/30 transition-colors cursor-pointer"
+                          className="border-b border-slate-100 hover:bg-slate-50/80 transition-colors cursor-pointer group"
                           onClick={() => {
                             setDetailsProduct(product)
                             setDetailsMediaIndex(0)
                             setDetailsDialogOpen(true)
                           }}
                         >
-                          <td className="py-4 px-4">
-                            <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary/30 flex-shrink-0">
+                          {/* Image — Shopdeck style: square with contained image */}
+                          <td className="py-3 px-4">
+                            <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0 border border-slate-200">
                               {product.images && product.images.length > 0 ? (
                                 <img
                                   src={product.images[0]}
                                   alt={product.name}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain p-1"
                                 />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
-                                  No Image
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-5 h-5 text-slate-300" />
                                 </div>
                               )}
                             </div>
                           </td>
-                          <td className="py-4 px-4">
-                            <p className="font-medium">{product.name}</p>
+
+                          {/* Name — single line, truncated */}
+                          <td className="py-3 px-4 max-w-[280px]">
+                            <p className="text-sm font-medium text-slate-800 truncate leading-snug" title={product.name}>
+                              {product.name}
+                            </p>
                           </td>
-                          <td className="py-4 px-4 text-sm text-muted-foreground">{product.category}</td>
-                          <td className="py-4 px-4 text-sm">
-                            <span className="text-xs bg-secondary/50 px-2 py-1 rounded">
+
+                          {/* Category */}
+                          <td className="py-3 px-4">
+                            <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                              {product.category}
+                            </span>
+                          </td>
+
+                          {/* Variants */}
+                          <td className="py-3 px-4">
+                            <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md font-medium">
                               {product.variants.length} variant(s)
                             </span>
                           </td>
+
+                          {/* Stock status (low-stock / out-of-stock tabs) */}
                           {activeTab !== "all" && (
-                            <td className="py-4 px-4">
+                            <td className="py-3 px-4">
                               <div className="flex flex-wrap gap-1">
                                 {activeTab === "low-stock" && lowStockVariants.map((variant, idx) => (
                                   <div
                                     key={idx}
-                                    className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs font-medium"
+                                    className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded text-xs font-medium"
                                   >
                                     {variant.label}: {variant.quantity} left
                                   </div>
@@ -415,7 +430,7 @@ export default function ProductsPage() {
                                 {activeTab === "out-of-stock" && outOfStockVariants.map((variant, idx) => (
                                   <div
                                     key={idx}
-                                    className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-xs font-medium"
+                                    className="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-medium"
                                   >
                                     {variant.label}: Out
                                   </div>
@@ -423,47 +438,58 @@ export default function ProductsPage() {
                               </div>
                             </td>
                           )}
-                          <td className="py-4 px-4 text-sm font-medium text-primary">
-                            {product.tax || 0}%
+
+                          {/* Tax */}
+                          <td className="py-3 px-4">
+                            <span className="text-sm font-semibold text-slate-700">{product.tax || 0}%</span>
                           </td>
-                          <td className="py-4 px-4 text-center">
+
+                          {/* Status toggle */}
+                          <td className="py-3 px-4 text-center">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 handleToggleStatus(product)
                               }}
-                              className={`inline-flex items-center justify-center w-8 h-8 rounded-full transition-colors ${product.isAvailable
-                                ? "bg-green-100/80 text-green-700 hover:bg-green-200/80"
-                                : "bg-gray-100/80 text-gray-500 hover:bg-gray-200/80"
+                              className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-full transition-colors ${product.isAvailable
+                                ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                                 }`}
                               title={product.isAvailable ? "Click to disable" : "Click to enable"}
                             >
-                              {product.isAvailable ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                              {product.isAvailable ? (
+                                <><Eye className="w-3 h-3" /> Active</>
+                              ) : (
+                                <><EyeOff className="w-3 h-3" /> Inactive</>
+                              )}
                             </button>
                           </td>
-                          <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+
+                          {/* Actions */}
+                          <td className="py-3 px-4 text-right">
+                            <div className="flex items-center justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 hover:bg-indigo-50 hover:text-indigo-600"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   router.push(`/products/edit/${product.id}`)
                                 }}
                               >
-                                <Edit2 className="w-4 h-4" />
+                                <Edit2 className="w-3.5 h-3.5" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className="h-8 w-8 p-0 hover:bg-red-50 hover:text-red-600"
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   setProductToDelete(product)
                                   setDeleteDialogOpen(true)
                                 }}
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                               </Button>
                             </div>
                           </td>

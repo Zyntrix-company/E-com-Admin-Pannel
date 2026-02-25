@@ -349,7 +349,7 @@ export default function CustomersPage() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8 p-6 bg-[#F8F9FC] min-h-screen">
+      <div className="space-y-8 p-5 max-w-7xl mx-auto bg-[#F8F9FC] min-h-screen">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Customer Management</h1>

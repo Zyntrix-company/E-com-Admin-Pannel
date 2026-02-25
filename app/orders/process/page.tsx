@@ -367,7 +367,7 @@ export default function ProcessOrdersPage() {
 
     return (
         <AdminLayout>
-            <div className="space-y-8 p-6 bg-[#F8F9FC] min-h-screen">
+            <div className="space-y-8 p-5 max-w-7xl mx-auto bg-[#F8F9FC] min-h-screen">
                 {/* Header */}
                 <div className="flex justify-between items-center">
                     <div>

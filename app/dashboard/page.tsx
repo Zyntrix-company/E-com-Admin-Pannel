@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { AdminLayout } from "@/components/admin-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, LineChart, Line, Tooltip, ResponsiveContainer } from "recharts"
 import { axiosInstance } from "@/lib/axios"
-import { ShoppingCart, Users, Package, DollarSign, TrendingUp, Clock, Star, ArrowRight, Zap, X, BarChart3, LineChart as LineIcon } from "lucide-react"
+import { ShoppingCart, Users, Package, IndianRupee, TrendingUp, Clock, Star, Zap, BarChart3, LineChart as LineIcon } from "lucide-react"
 
 interface Stats {
   totalUsers: number
@@ -44,56 +43,51 @@ interface Stats {
   conversionRate: string
 }
 
-// Updated Card Components with Fixed Height and Flex Layout
+// Shopdeck-style compact stat card
 const StatCard = ({
   title,
   value,
   icon,
   trend,
-  color = "indigo",
-}: { title: string; value: string | number; icon: React.ReactNode; trend?: number, color?: string }) => (
-  <Card className="border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 bg-white h-[200px] flex flex-col justify-between">
-    <CardContent className="p-6 flex flex-col h-full justify-between">
-      <div className="flex items-center justify-between">
-        <div className={`p-3 rounded-lg bg-indigo-50 text-indigo-600`}>
+}: { title: string; value: string | number; icon: React.ReactNode; trend?: number }) => (
+  <Card className="border border-slate-200 shadow-none hover:shadow-sm transition-all duration-150 bg-white rounded-lg">
+    <CardContent className="p-4 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <div className="p-2 rounded-md bg-indigo-50 text-indigo-600">
           {icon}
         </div>
         {trend !== undefined && (
-          <div className={`text-xs font-semibold flex items-center gap-1 px-2 py-1 rounded-full ${trend > 0 ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50"}`}>
+          <div className={`text-[10px] font-semibold flex items-center gap-0.5 px-1.5 py-0.5 rounded-full ${trend > 0 ? "text-emerald-600 bg-emerald-50" : "text-rose-600 bg-rose-50"}`}>
             {trend > 0 ? "↑" : "↓"} {Math.abs(trend)}%
           </div>
         )}
       </div>
-      <div>
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
-      </div>
+      <p className="text-[11px] font-medium text-slate-500 tracking-wide mb-0.5">{title}</p>
+      <h3 className="text-xl font-bold text-slate-900 leading-none">{value}</h3>
     </CardContent>
   </Card>
 )
 
+// Compact summary card
 const SummaryCard = ({ title, value, subtext }: { title: string; value: string | number; subtext?: string }) => (
-  <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col justify-between">
-    <CardContent className="p-6 flex flex-col h-full justify-center">
-      <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">{title}</p>
-      <div className="flex items-baseline gap-2">
-        <h3 className="text-3xl font-bold text-slate-900">{value}</h3>
-      </div>
-      {subtext && <p className="text-xs font-medium text-slate-400 mt-1">{subtext}</p>}
+  <Card className="border border-slate-200 shadow-none hover:shadow-sm transition-shadow bg-white rounded-lg">
+    <CardContent className="p-4 flex flex-col justify-center h-full">
+      <p className="text-[11px] font-medium text-slate-500 mb-1">{title}</p>
+      <h3 className="text-xl font-bold text-slate-900 leading-none">{value}</h3>
+      {subtext && <p className="text-[10px] text-slate-400 mt-1">{subtext}</p>}
     </CardContent>
   </Card>
 )
 
+// Compact breakdown card
 const BreakdownCard = ({ title, value, percentage }: { title: string; value: number; percentage: number }) => (
-  <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col justify-between">
-    <CardContent className="p-4 flex flex-col h-full justify-between">
-      <div className="flex justify-between items-start mb-2">
-        <p className="text-xs font-medium text-slate-500 uppercase tracking-wide leading-tight">{title}</p>
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-semibold text-indigo-600">{percentage}%</span>
-        </div>
+  <Card className="border border-slate-200 shadow-none hover:shadow-sm transition-shadow bg-white rounded-lg">
+    <CardContent className="p-4 flex flex-col justify-between h-full">
+      <div className="flex justify-between items-center mb-2">
+        <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide">{title}</p>
+        <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">{percentage}%</span>
       </div>
-      <h4 className="text-2xl font-bold text-slate-900">{value}</h4>
+      <h4 className="text-xl font-bold text-slate-900 leading-none">{value}</h4>
     </CardContent>
   </Card>
 )
@@ -121,10 +115,10 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-          <Skeleton className="h-8 w-48" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-[200px] rounded-xl" />)}
+        <div className="p-5 space-y-4 max-w-7xl mx-auto">
+          <Skeleton className="h-6 w-40" />
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+            {[...Array(12)].map((_, i) => <Skeleton key={i} className="h-[110px] rounded-lg" />)}
           </div>
         </div>
       </AdminLayout>
@@ -133,153 +127,188 @@ export default function DashboardPage() {
 
   return (
     <AdminLayout>
-      <div className="p-6 md:p-8 space-y-2 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="p-5 max-w-7xl mx-auto space-y-4">
+
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Dashboard</h1>
-            <p className="text-slate-500 text-sm mt-1">Welcome back! Here's what's happening with your store today.</p>
+            <h1 className="text-lg font-bold text-slate-900">Dashboard</h1>
+            <p className="text-slate-500 text-xs mt-0.5">Welcome back! Here's what's happening with your store today.</p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-500 bg-white shadow-sm px-4 py-2.5 rounded-lg border border-slate-200">
-            <Clock className="w-4 h-4 text-indigo-500" />
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-500 bg-white px-3 py-2 rounded-lg border border-slate-200 shadow-none w-fit">
+            <Clock className="w-3.5 h-3.5 text-indigo-500" />
             Updated: {new Date().toLocaleDateString('en-GB')}, {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
 
-        {/* Unified Dashboard Grid - All cards strictly same height h-[200px] */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
-
-          {/* 1. Key Metrics (6 Cards) */}
-          <StatCard title="Total Users" value={stats?.totalUsers || 0} icon={<Users className="w-5 h-5" />} trend={12} />
-          <StatCard title="Total Revenue" value={`₹${(stats?.totalRevenue || 0).toLocaleString()}`} icon={<DollarSign className="w-5 h-5" />} trend={8} />
-          <StatCard title="Total Orders" value={stats?.totalOrders || 0} icon={<Package className="w-5 h-5" />} trend={15} />
-          <StatCard title="Average Ticket" value={`₹${(stats?.avgOrderValue || 0).toLocaleString()}`} icon={<TrendingUp className="w-5 h-5" />} />
-          <StatCard title="Active Products" value={stats?.totalProducts || 0} icon={<Package className="w-5 h-5" />} />
-          <StatCard title="Conversion" value={`${stats?.conversionRate || 0}%`} icon={<Zap className="w-5 h-5" />} />
-
-          {/* 2. Monthly Charts (2 Cards) */}
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col">
-            <CardHeader className="border-b border-slate-100 p-4 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-50">
-                  <LineIcon className="w-3.5 h-3.5 text-indigo-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold text-slate-900">Revenue Trends</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats?.monthlyTrends || []}>
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="revenue" stroke="#6366F1" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col">
-            <CardHeader className="border-b border-slate-100 p-4 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-50">
-                  <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold text-slate-900">Order Volume</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.monthlyTrends || []}>
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }} />
-                  <Bar dataKey="orders" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* 3. Today's Summary (3 Cards) */}
-          <SummaryCard title="Orders Placed" value={stats?.today.placed || 0} subtext="Today" />
-          <SummaryCard title="Orders Confirmed" value={stats?.today.confirmed || 0} subtext="Today" />
-          <SummaryCard title="Proj. Revenue" value={`₹${(stats?.today.projectedRevenue || 0).toLocaleString()}`} subtext="Today" />
-
-          {/* 4. Order Breakdowns (7 Cards) */}
-          <BreakdownCard title="Confirmed" value={stats?.breakdown.confirmed || 0} percentage={stats ? Math.round(((stats.breakdown.confirmed || 0) / confirmedTotal) * 100) || 0 : 0} />
-          <BreakdownCard title="Packed" value={stats?.breakdown.packed || 0} percentage={stats ? Math.round(((stats.breakdown.packed || 0) / confirmedTotal) * 100) || 0 : 0} />
-          <BreakdownCard title="Shipped" value={stats?.breakdown.shipped || 0} percentage={stats ? Math.round(((stats.breakdown.shipped || 0) / confirmedTotal) * 100) || 0 : 0} />
-          <BreakdownCard title="Delivered" value={stats?.breakdown.delivered || 0} percentage={stats ? Math.round(((stats.breakdown.delivered || 0) / confirmedTotal) * 100) || 0 : 0} />
-          <BreakdownCard title="RTO" value={stats?.breakdown.rto || 0} percentage={stats ? Math.round(((stats.breakdown.rto || 0) / confirmedTotal) * 100) || 0 : 0} />
-          <BreakdownCard title="Returned" value={stats?.breakdown.returned || 0} percentage={stats ? Math.round(((stats.breakdown.returned || 0) / confirmedTotal) * 100) || 0 : 0} />
-          <BreakdownCard title="Lost" value={stats?.breakdown.lost || 0} percentage={stats ? Math.round(((stats.breakdown.lost || 0) / confirmedTotal) * 100) || 0 : 0} />
-
-          {/* 5. Customer Insights (3 Cards) */}
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col items-center justify-center p-4">
-            <h3 className="text-4xl font-bold text-slate-900 mb-2">{stats?.customerRating.average || 0}</h3>
-            <div className="flex gap-1 mb-2">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className={`w-5 h-5 ${i < (stats?.customerRating.average || 0) ? 'fill-indigo-500 text-indigo-500' : 'text-slate-300'}`} />
-              ))}
-            </div>
-            <p className="text-xs font-medium text-slate-500">{stats?.customerRating.count || 0} ratings</p>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col justify-center p-6">
-            <p className="text-xs font-medium uppercase text-slate-500 mb-2">Repeat Rate</p>
-            <h4 className="text-3xl font-bold text-slate-900">{stats?.repeatOrders.avgPerCustomer || 0}x</h4>
-            <p className="text-xs text-slate-400 mt-2">Avg orders per customer</p>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col justify-center p-6 bg-indigo-50 border-indigo-100">
-            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wide mb-2">Stock Health</p>
-            <h4 className="text-3xl font-bold text-indigo-900">{stats?.stockHealth || 0}%</h4>
-            <p className="text-xs text-indigo-600/70 mt-2">Inventory Status</p>
-          </Card>
-
-          {/* 6. Daily Charts (2 Cards) */}
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col">
-            <CardHeader className="border-b border-slate-100 p-4 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-50">
-                  <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold text-slate-900">Daily Orders</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats?.dailyTrends || []}>
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }} />
-                  <Bar dataKey="orders" fill="#6366F1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="border border-slate-200 shadow-sm bg-white hover:shadow-md transition-shadow h-[200px] flex flex-col">
-            <CardHeader className="border-b border-slate-100 p-4 pb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-50">
-                  <LineIcon className="w-3.5 h-3.5 text-indigo-600" />
-                </div>
-                <div>
-                  <CardTitle className="text-sm font-semibold text-slate-900">Daily Revenue</CardTitle>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 pt-2 flex-1 min-h-0">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats?.dailyTrends || []}>
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', fontSize: '12px' }} />
-                  <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
+        {/* Section: Key Metrics */}
+        <div>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Key Metrics</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <StatCard title="Total Customers" value={stats?.totalUsers || 0} icon={<Users className="w-4 h-4" />} trend={12} />
+            <StatCard title="Total Revenue" value={`₹${(stats?.totalRevenue || 0).toLocaleString()}`} icon={<IndianRupee className="w-4 h-4" />} trend={8} />
+            <StatCard title="Total Orders" value={stats?.totalOrders || 0} icon={<Package className="w-4 h-4" />} trend={15} />
+            <StatCard title="Avg. Ticket" value={`₹${(stats?.avgOrderValue || 0).toLocaleString()}`} icon={<TrendingUp className="w-4 h-4" />} />
+            <StatCard title="Active Products" value={stats?.totalProducts || 0} icon={<Package className="w-4 h-4" />} />
+            <StatCard title="Conversion" value={`${stats?.conversionRate || 0}%`} icon={<Zap className="w-4 h-4" />} />
+          </div>
         </div>
+
+        {/* Section: Today's Summary */}
+        <div>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Today's Summary</p>
+          <div className="grid grid-cols-3 gap-2.5">
+            <SummaryCard title="Orders Placed" value={stats?.today.placed || 0} subtext="Today" />
+            <SummaryCard title="Orders Confirmed" value={stats?.today.confirmed || 0} subtext="Today" />
+            <SummaryCard title="Proj. Revenue" value={`₹${(stats?.today.projectedRevenue || 0).toLocaleString()}`} subtext="Today" />
+          </div>
+        </div>
+
+        {/* Section: Order Breakdown + Charts side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+          {/* Order Breakdown */}
+          <div className="lg:col-span-2">
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Order Breakdown</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2.5">
+              <BreakdownCard title="Confirmed" value={stats?.breakdown.confirmed || 0} percentage={stats ? Math.round(((stats.breakdown.confirmed || 0) / confirmedTotal) * 100) || 0 : 0} />
+              <BreakdownCard title="Packed" value={stats?.breakdown.packed || 0} percentage={stats ? Math.round(((stats.breakdown.packed || 0) / confirmedTotal) * 100) || 0 : 0} />
+              <BreakdownCard title="Shipped" value={stats?.breakdown.shipped || 0} percentage={stats ? Math.round(((stats.breakdown.shipped || 0) / confirmedTotal) * 100) || 0 : 0} />
+              <BreakdownCard title="Delivered" value={stats?.breakdown.delivered || 0} percentage={stats ? Math.round(((stats.breakdown.delivered || 0) / confirmedTotal) * 100) || 0 : 0} />
+              <BreakdownCard title="RTO" value={stats?.breakdown.rto || 0} percentage={stats ? Math.round(((stats.breakdown.rto || 0) / confirmedTotal) * 100) || 0 : 0} />
+              <BreakdownCard title="Returned" value={stats?.breakdown.returned || 0} percentage={stats ? Math.round(((stats.breakdown.returned || 0) / confirmedTotal) * 100) || 0 : 0} />
+              <BreakdownCard title="Lost" value={stats?.breakdown.lost || 0} percentage={stats ? Math.round(((stats.breakdown.lost || 0) / confirmedTotal) * 100) || 0 : 0} />
+            </div>
+          </div>
+
+          {/* Customer Insights */}
+          <div>
+            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Customer Insights</p>
+            <div className="flex flex-col gap-2.5">
+              {/* Rating Card */}
+              <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+                <CardContent className="p-4 flex items-center gap-4">
+                  <h3 className="text-2xl font-bold text-slate-900">{stats?.customerRating.average || 0}</h3>
+                  <div>
+                    <div className="flex gap-0.5 mb-0.5">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} className={`w-3.5 h-3.5 ${i < (stats?.customerRating.average || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-slate-400">{stats?.customerRating.count || 0} ratings</p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Repeat Rate Card */}
+              <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+                <CardContent className="p-4">
+                  <p className="text-[11px] font-medium text-slate-500 mb-1">Repeat Rate</p>
+                  <h4 className="text-xl font-bold text-slate-900 leading-none">{stats?.repeatOrders.avgPerCustomer || 0}x</h4>
+                  <p className="text-[10px] text-slate-400 mt-1">Avg orders per customer</p>
+                </CardContent>
+              </Card>
+
+              {/* Stock Health Card */}
+              <Card className="border border-slate-200 shadow-none bg-indigo-50 border-indigo-100 rounded-lg">
+                <CardContent className="p-4">
+                  <p className="text-[11px] font-semibold text-indigo-600 mb-1">Stock Health</p>
+                  <h4 className="text-xl font-bold text-indigo-900 leading-none">{stats?.stockHealth || 0}%</h4>
+                  <p className="text-[10px] text-indigo-500 mt-1">Inventory Status</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Section: Charts */}
+        <div>
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest mb-2">Trends</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+
+            {/* Revenue Trends */}
+            <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+              <CardHeader className="border-b border-slate-100 p-3 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-indigo-50">
+                    <LineIcon className="w-3 h-3 text-indigo-600" />
+                  </div>
+                  <CardTitle className="text-xs font-semibold text-slate-900">Revenue Trends</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 pt-2" style={{ height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={stats?.monthlyTrends || []}>
+                    <Tooltip contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '11px' }} />
+                    <Line type="monotone" dataKey="revenue" stroke="#6366F1" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Order Volume */}
+            <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+              <CardHeader className="border-b border-slate-100 p-3 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-indigo-50">
+                    <BarChart3 className="w-3 h-3 text-indigo-600" />
+                  </div>
+                  <CardTitle className="text-xs font-semibold text-slate-900">Order Volume</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 pt-2" style={{ height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats?.monthlyTrends || []}>
+                    <Tooltip contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '11px' }} />
+                    <Bar dataKey="orders" fill="#6366F1" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Daily Orders */}
+            <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+              <CardHeader className="border-b border-slate-100 p-3 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-indigo-50">
+                    <BarChart3 className="w-3 h-3 text-indigo-600" />
+                  </div>
+                  <CardTitle className="text-xs font-semibold text-slate-900">Daily Orders</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 pt-2" style={{ height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={stats?.dailyTrends || []}>
+                    <Tooltip contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '11px' }} />
+                    <Bar dataKey="orders" fill="#6366F1" radius={[3, 3, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Daily Revenue */}
+            <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+              <CardHeader className="border-b border-slate-100 p-3 pb-2">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-md bg-indigo-50">
+                    <LineIcon className="w-3 h-3 text-indigo-600" />
+                  </div>
+                  <CardTitle className="text-xs font-semibold text-slate-900">Daily Revenue</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="p-3 pt-2" style={{ height: 140 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={stats?.dailyTrends || []}>
+                    <Tooltip contentStyle={{ borderRadius: '6px', border: '1px solid #E2E8F0', fontSize: '11px' }} />
+                    <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+          </div>
+        </div>
+
       </div>
     </AdminLayout>
   )

@@ -142,7 +142,7 @@ export default function ReviewsPage() {
 
     return (
         <AdminLayout>
-            <div className="p-6 space-y-6">
+            <div className="p-5 space-y-6 max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
