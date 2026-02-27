@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import {
-  Menu, X, LogOut, Settings, Search, Bell,
+  Menu, X, LogOut, Settings, Search,
   LayoutDashboard, Package, Tag, Users, ShoppingBag,
   Cog, BookOpen, BarChart3, FileCheck, Star
 } from "lucide-react"
@@ -22,7 +22,7 @@ const navigationItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/products", label: "Products", icon: Package },
   { href: "/promos", label: "Promo Codes", icon: Tag },
-  { href: "/users", label: "Users", icon: Users },
+  { href: "/users", label: "Customers", icon: Users },
   { href: "/orders", label: "Orders", icon: ShoppingBag },
   { href: "/orders/process", label: "Process Orders", icon: Cog },
   { href: "/reviews", label: "Reviews", icon: Star },
@@ -199,12 +199,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Notifications */}
-            <button className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors">
-              <Bell className="w-5 h-5 text-slate-600" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full"></span>
-            </button>
-
             {/* Profile */}
             <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
               <div className="text-right hidden sm:block">

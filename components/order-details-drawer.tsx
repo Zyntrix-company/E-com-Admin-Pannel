@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import { Copy, Check } from "lucide-react"
+import dynamic from "next/dynamic"
+
+const ShipmentManager = dynamic(() => import("@/components/shipment-manager"), { ssr: false })
 
 interface Order {
   _id: string
@@ -49,6 +52,8 @@ interface Order {
   paymentStatus: string
   orderStatus: string
   shipmentStatus: string
+  awbNumber?: string
+  shippingProvider?: string
   adminRemarks?: string
   specialRequests?: string
   remarks?: string
@@ -204,6 +209,21 @@ export function OrderDetailsDrawer({ order, open, onOpenChangeAction, onStatusCh
                 </div>
               )}
             </div>
+          </div>
+
+          <Separator />
+
+          {/* Track Order (Shiprocket / Delivery Partner) */}
+          <div className="space-y-3">
+            <h3 className="font-semibold text-sm">Track Order</h3>
+            <ShipmentManager
+              orderId={order._id}
+              awbNumber={order.awbNumber}
+              shippingProvider={order.shippingProvider}
+              orderStatus={order.orderStatus}
+              onShipmentCreated={onStatusChangeAction}
+              onShipmentCancelled={onStatusChangeAction}
+            />
           </div>
 
           <Separator />

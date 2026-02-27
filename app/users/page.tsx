@@ -34,7 +34,7 @@ interface User {
   email: string
   phone: string
   alternatePhone?: string
-  userType: "buyer" | "admin"
+  userType: "buyer" | "admin" | "staff"
   profileImage?: string
   isVerified: boolean
   isActive: boolean
@@ -200,8 +200,11 @@ export default function CustomersPage() {
     u.phone?.includes(searchQuery)
   )
 
-  const activeCustomers = filtered.filter(u => u.isActive)
-  const blockedCustomers = filtered.filter(u => !u.isActive)
+  // Separate customers (buyers) and admin/staff
+  const customers = filtered.filter(u => u.userType === "buyer")
+  const adminStaff = filtered.filter(u => u.userType !== "buyer")
+  const activeCustomers = customers.filter(u => u.isActive)
+  const blockedCustomers = customers.filter(u => !u.isActive)
 
   const downloadCsv = async () => {
     setIsDownloading(true)
@@ -233,13 +236,15 @@ export default function CustomersPage() {
     </div>
   )
 
-  const renderUserTable = (data: User[], isBlocked = false) => (
+  const renderUserTable = (data: User[], isBlocked = false, isAdminStaff = false) => (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="border-b border-slate-100">
             <th className="w-12"></th>
-            <th className="text-left py-4 px-4 text-[10px] font-black uppercase text-slate-400">Customer</th>
+            <th className="text-left py-4 px-4 text-[10px] font-black uppercase text-slate-400">
+              {isAdminStaff ? "Role" : "Customer"}
+            </th>
             <th className="text-left py-4 px-4 text-[10px] font-black uppercase text-slate-400">Contact</th>
             <th className="text-center py-4 px-4 text-[10px] font-black uppercase text-slate-400">Verification</th>
             <th className="text-right py-4 px-4 text-[10px] font-black uppercase text-slate-400">Actions</th>
@@ -259,7 +264,9 @@ export default function CustomersPage() {
                     </div>
                     <div>
                       <p className="text-sm font-black text-slate-800 tracking-tight">{user.name}</p>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{user.userType}</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        {isAdminStaff ? (user.userType || "Staff") : "Customer"}
+                      </p>
                     </div>
                   </div>
                 </td>
@@ -281,9 +288,9 @@ export default function CustomersPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="rounded-xl border-none shadow-xl w-48">
-                      <DropdownMenuItem onClick={() => { setUserToToggle(user); setToggleDialogOpen(true) }} className="font-bold text-xs uppercase tracking-widest gap-2 py-3 rounded-lg">
+                      <DropdownMenuItem onClick={() => { setUserToToggle(user); setToggleDialogOpen(true) }} className="font-bold text-xs uppercase tracking-widest gap-2 py-3 rounded-lg" disabled={isAdminStaff}>
                         {isBlocked ? <CheckCircle className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
-                        {isBlocked ? 'Restore Access' : 'Block Customer'}
+                        {isAdminStaff ? "—" : isBlocked ? "Restore Access" : "Block Customer"}
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -364,28 +371,28 @@ export default function CustomersPage() {
           <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total User Base</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Customers</p>
                 <UserIcon className="w-4 h-4 text-slate-300" />
               </div>
-              <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{users.length}</h3>
+              <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{customers.length}</h3>
             </CardContent>
           </Card>
           <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Purchasing Customers</p>
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest">Active Customers</p>
                 <CheckCircle className="w-4 h-4 text-primary/30" />
               </div>
-              <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{users.filter(u => u.isActive).length}</h3>
+              <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{activeCustomers.length}</h3>
             </CardContent>
           </Card>
           <Card className="border-none shadow-sm bg-white rounded-2xl overflow-hidden">
             <CardContent className="p-6">
               <div className="flex justify-between items-start mb-4">
-                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Blocked Accounts</p>
+                <p className="text-[10px] font-black text-red-500 uppercase tracking-widest">Blocked Customers</p>
                 <XCircle className="w-4 h-4 text-red-100" />
               </div>
-              <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{users.filter(u => !u.isActive).length}</h3>
+              <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{blockedCustomers.length}</h3>
             </CardContent>
           </Card>
         </div>
@@ -405,23 +412,34 @@ export default function CustomersPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
-            <Tabs defaultValue="active" className="w-full">
+            <Tabs defaultValue="customers" className="w-full">
               <div className="px-8 pt-6">
                 <TabsList className="bg-slate-100/80 p-1 rounded-xl">
-                  <TabsTrigger value="active" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest">Purchasing Customers</TabsTrigger>
-                  <TabsTrigger value="blocked" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest">Blocked Accounts</TabsTrigger>
+                  <TabsTrigger value="customers" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest">Customers</TabsTrigger>
+                  <TabsTrigger value="adminstaff" className="rounded-lg font-black uppercase text-[10px] px-8 tracking-widest">Admin & Staff</TabsTrigger>
                 </TabsList>
               </div>
 
-              <TabsContent value="active" className="mt-0">
-                <div className="px-8 py-6">
-                  {isLoading ? renderLoadingState() : activeCustomers.length === 0 ? <p className="text-center py-20 text-xs font-bold text-slate-400 uppercase tracking-widest">No Active Purchasing Profiles Found</p> : renderUserTable(activeCustomers)}
+              <TabsContent value="customers" className="mt-0">
+                <div className="px-8 pt-4 pb-6">
+                  <Tabs defaultValue="active" className="w-full">
+                    <TabsList className="bg-slate-100/80 p-1 rounded-lg mb-6 inline-flex">
+                      <TabsTrigger value="active" className="rounded-md font-bold uppercase text-[10px] px-6 tracking-widest">Active</TabsTrigger>
+                      <TabsTrigger value="blocked" className="rounded-md font-bold uppercase text-[10px] px-6 tracking-widest">Blocked</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="active" className="mt-0">
+                      {isLoading ? renderLoadingState() : activeCustomers.length === 0 ? <p className="text-center py-20 text-xs font-bold text-slate-400 uppercase tracking-widest">No active customers</p> : renderUserTable(activeCustomers, false, false)}
+                    </TabsContent>
+                    <TabsContent value="blocked" className="mt-0">
+                      {isLoading ? renderLoadingState() : blockedCustomers.length === 0 ? <p className="text-center py-20 text-xs font-bold text-slate-400 uppercase tracking-widest">No blocked customers</p> : renderUserTable(blockedCustomers, true, false)}
+                    </TabsContent>
+                  </Tabs>
                 </div>
               </TabsContent>
 
-              <TabsContent value="blocked" className="mt-0">
+              <TabsContent value="adminstaff" className="mt-0">
                 <div className="px-8 py-6">
-                  {isLoading ? renderLoadingState() : blockedCustomers.length === 0 ? <p className="text-center py-20 text-xs font-bold text-slate-400 uppercase tracking-widest">No Blocked Customer Accounts Found</p> : renderUserTable(blockedCustomers, true)}
+                  {isLoading ? renderLoadingState() : adminStaff.length === 0 ? <p className="text-center py-20 text-xs font-bold text-slate-400 uppercase tracking-widest">No admin or staff accounts</p> : renderUserTable(adminStaff, false, true)}
                 </div>
               </TabsContent>
             </Tabs>

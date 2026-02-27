@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Package, Truck, XCircle, Eye, Loader2, CheckCircle, AlertCircle } from "lucide-react";
-import axios from "axios";
-import toast from "react-hot-toast";
+import { useToast } from "@/hooks/use-toast";
+import { axiosInstance } from "@/lib/axios";
 
 interface ShipmentManagerProps {
     orderId: string;
@@ -26,21 +26,26 @@ export default function ShipmentManager({
     const [loading, setLoading] = useState(false);
     const [trackingData, setTrackingData] = useState<any>(null);
     const [showTracking, setShowTracking] = useState(false);
+    const { toast } = useToast();
 
     const createShipment = async () => {
         if (!confirm("Create shipment for this order?")) return;
 
         setLoading(true);
         try {
-            const response = await axios.post(`/api/tracking/create/${orderId}`);
+            const response = await axiosInstance.post(`/tracking/create/${orderId}`);
 
-            if (response.data.success) {
-                toast.success("Shipment created successfully!");
+            if (response.data?.success) {
+                toast({ title: "Success", description: "Shipment created successfully!" });
                 onShipmentCreated?.();
             }
         } catch (error: any) {
             console.error("Create shipment error:", error);
-            toast.error(error.response?.data?.message || "Failed to create shipment");
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Failed to create shipment",
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -52,17 +57,21 @@ export default function ShipmentManager({
 
         setLoading(true);
         try {
-            const response = await axios.post(`/api/tracking/cancel/${orderId}`, {
+            const response = await axiosInstance.post(`/tracking/cancel/${orderId}`, {
                 cancellationReason: reason
             });
 
-            if (response.data.success) {
-                toast.success("Shipment cancelled successfully!");
+            if (response.data?.success) {
+                toast({ title: "Success", description: "Shipment cancelled successfully!" });
                 onShipmentCancelled?.();
             }
         } catch (error: any) {
             console.error("Cancel shipment error:", error);
-            toast.error(error.response?.data?.message || "Failed to cancel shipment");
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Failed to cancel shipment",
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -71,15 +80,19 @@ export default function ShipmentManager({
     const viewTracking = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`/api/tracking/track/${orderId}`);
+            const response = await axiosInstance.get(`/tracking/track/${orderId}`);
 
-            if (response.data.success) {
+            if (response.data?.success) {
                 setTrackingData(response.data.data);
                 setShowTracking(true);
             }
         } catch (error: any) {
             console.error("Track order error:", error);
-            toast.error(error.response?.data?.message || "Failed to fetch tracking data");
+            toast({
+                title: "Error",
+                description: error.response?.data?.message || "Failed to fetch tracking data",
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -171,7 +184,7 @@ export default function ShipmentManager({
                     >
                         <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
                             <div className="flex items-center justify-between">
-                                <h3 className="text-2xl font-bold text-gray-900">Tracking Details</h3>
+                                <h3 className="text-2xl font-bold text-gray-900">Track Order (Shiprocket / Delivery Partner)</h3>
                                 <button
                                     onClick={() => setShowTracking(false)}
                                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
