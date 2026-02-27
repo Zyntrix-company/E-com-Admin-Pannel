@@ -38,6 +38,7 @@ interface Address {
   city: string
   state: string
   pincode: string
+  email?: string
 }
 
 interface OrderItem {
@@ -158,7 +159,7 @@ export default function CreateOrderPage() {
       setItems([
         ...items,
         {
-          productId: product._id || product.id,
+          productId: product._id || product.id || "",
           name: product.name,
           price: Number(price),
           quantity: addQuantity,
@@ -436,7 +437,7 @@ export default function CreateOrderPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Delivery fee (₹)</Label>
-                  <Input type="number" min={0} step={1} value={deliveryFee} onChange={(e) => setDeliveryFee(e.target.value)} />
+                  <Input type="number" min={0} step={1} value={deliveryFee} onChange={(e) => setDeliveryFee(Number(e.target.value) || 0)} />
                 </div>
               </div>
               <div className="space-y-2">
