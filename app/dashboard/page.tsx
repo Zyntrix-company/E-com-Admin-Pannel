@@ -4,9 +4,15 @@ import { useEffect, useState } from "react"
 import { AdminLayout } from "@/components/admin-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BarChart, Bar, LineChart, Line, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, LineChart, Line, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, XAxis, YAxis } from "recharts"
 import { axiosInstance } from "@/lib/axios"
-import { ShoppingCart, Users, Package, IndianRupee, TrendingUp, Clock, Star, Zap, BarChart3, LineChart as LineIcon } from "lucide-react"
+import { ShoppingCart, Users, Package, IndianRupee, TrendingUp, Clock, Star, Zap, BarChart3, LineChart as LineIcon, Download, Table2, Info } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface Stats {
   totalUsers: number
@@ -41,6 +47,8 @@ interface Stats {
   avgOrderValue: number
   stockHealth: number
   conversionRate: string
+  paymentModeBreakdown?: { cod: number; online: number; partial: number }
+  stateWiseOrders?: Array<{ state: string; count: number; percentage: number }>
 }
 
 // Shopdeck-style compact stat card
@@ -95,6 +103,8 @@ const BreakdownCard = ({ title, value, percentage }: { title: string; value: num
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [paymentTableOpen, setPaymentTableOpen] = useState(false)
+  const [stateTableOpen, setStateTableOpen] = useState(false)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -111,6 +121,46 @@ export default function DashboardPage() {
   }, [])
 
   const confirmedTotal = stats ? Object.values(stats.breakdown).reduce((a, b) => a + b, 0) : 0
+
+  const paymentModeData = stats?.paymentModeBreakdown
+    ? [
+        { name: "COD", value: stats.paymentModeBreakdown.cod, color: "#6366F1" },
+        { name: "Online", value: stats.paymentModeBreakdown.online, color: "#10B981" },
+        { name: "Partial", value: stats.paymentModeBreakdown.partial, color: "#F59E0B" },
+      ].filter((d) => d.value > 0)
+    : []
+
+  const totalPaymentOrders = paymentModeData.reduce((s, d) => s + d.value, 0)
+
+  const downloadPaymentCsv = () => {
+    const rows = [
+      ["Payment Mode", "Orders", "Percentage"],
+      ...paymentModeData.map((d) => [d.name, d.value, totalPaymentOrders ? ((d.value / totalPaymentOrders) * 100).toFixed(1) + "%" : "0%"]),
+    ]
+    const csv = rows.map((r) => r.join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `payment-mode-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const downloadStateCsv = () => {
+    const rows = [
+      ["State", "Orders", "Order Volume Contribution %"],
+      ...(stats?.stateWiseOrders || []).map((d) => [d.state, d.count, `${d.percentage}%`]),
+    ]
+    const csv = rows.map((r) => r.join(",")).join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `state-wise-orders-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (isLoading) {
     return (
@@ -162,6 +212,131 @@ export default function DashboardPage() {
             <SummaryCard title="Orders Confirmed" value={stats?.today.confirmed || 0} subtext="Today" />
             <SummaryCard title="Proj. Revenue" value={`₹${(stats?.today.projectedRevenue || 0).toLocaleString()}`} subtext="Today" />
           </div>
+        </div>
+
+        {/* Section: Payment Mode & State-wise Order Distribution */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Payment Mode */}
+          <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+            <CardHeader className="border-b border-slate-100 p-4 pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base font-semibold text-slate-900">Payment Mode</CardTitle>
+                  <span className="text-slate-400 cursor-help" title="Distribution of orders by payment method (COD, Online, Partial)">
+                    <Info className="w-4 h-4" />
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={downloadPaymentCsv}
+                    className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
+                    title="Download CSV"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentTableOpen(true)}
+                    className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
+                    title="View table"
+                  >
+                    <Table2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {paymentModeData.length === 0 ? (
+                <div className="h-[240px] flex items-center justify-center text-slate-400 text-sm">No payment data yet</div>
+              ) : (
+                <div className="h-[240px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={paymentModeData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey="value"
+                        nameKey="name"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        {paymentModeData.map((entry, index) => (
+                          <Cell key={entry.name} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value: number) => [value, "Orders"]} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* State-wise Order Distribution */}
+          <Card className="border border-slate-200 shadow-none bg-white rounded-lg">
+            <CardHeader className="border-b border-slate-100 p-4 pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-semibold text-slate-900">State-wise Order Distribution</CardTitle>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={downloadStateCsv}
+                    className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
+                    title="Download CSV"
+                  >
+                    <Download className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setStateTableOpen(true)}
+                    className="p-2 rounded-md hover:bg-slate-100 text-slate-500"
+                    title="View table"
+                  >
+                    <Table2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              {(stats?.stateWiseOrders?.length ?? 0) === 0 ? (
+                <div className="h-[240px] flex items-center justify-center text-slate-400 text-sm">No state-wise data yet</div>
+              ) : (
+                <div className="max-h-[320px] overflow-y-auto rounded-lg border border-slate-100 bg-slate-50/50">
+                  <div className="divide-y divide-slate-100">
+                    {(stats?.stateWiseOrders || [])
+                      .slice()
+                      .sort((a, b) => b.count - a.count)
+                      .map((row, i) => (
+                        <div
+                          key={row.state}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors"
+                        >
+                          <span className="text-slate-500 text-xs font-medium tabular-nums w-6">{i + 1}</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">{row.state}</p>
+                            <div className="mt-1 h-1.5 w-full max-w-[120px] rounded-full bg-slate-200 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-indigo-500"
+                                style={{ width: `${Math.min(100, row.percentage)}%` }}
+                              />
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="text-sm font-semibold text-slate-900">{row.count}</span>
+                            <span className="text-slate-400 text-xs ml-1">orders</span>
+                            <span className="block text-[11px] text-slate-500">{row.percentage}%</span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Section: Order Breakdown + Charts side by side */}
@@ -309,6 +484,63 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Payment Mode Table Dialog */}
+        <Dialog open={paymentTableOpen} onOpenChange={setPaymentTableOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Payment Mode – Table View</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 font-medium">Payment Mode</th>
+                    <th className="text-right py-2 font-medium">Orders</th>
+                    <th className="text-right py-2 font-medium">%</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paymentModeData.map((d) => (
+                    <tr key={d.name} className="border-b">
+                      <td className="py-2">{d.name}</td>
+                      <td className="text-right py-2">{d.value}</td>
+                      <td className="text-right py-2">{totalPaymentOrders ? ((d.value / totalPaymentOrders) * 100).toFixed(1) : 0}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* State-wise Table Dialog */}
+        <Dialog open={stateTableOpen} onOpenChange={setStateTableOpen}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+            <DialogHeader>
+              <DialogTitle>State-wise Order Distribution – Table View</DialogTitle>
+            </DialogHeader>
+            <div className="overflow-auto flex-1">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-2 font-medium">State</th>
+                    <th className="text-right py-2 font-medium">Orders</th>
+                    <th className="text-right py-2 font-medium">Order Volume %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(stats?.stateWiseOrders || []).map((row) => (
+                    <tr key={row.state} className="border-b">
+                      <td className="py-2">{row.state}</td>
+                      <td className="text-right py-2">{row.count}</td>
+                      <td className="text-right py-2">{row.percentage}%</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminLayout>
   )
