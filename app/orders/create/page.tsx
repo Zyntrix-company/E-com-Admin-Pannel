@@ -346,11 +346,14 @@ export default function CreateOrderPage() {
                   disabled={loadingProducts}
                 >
                   <option value="">Select product</option>
-                  {products.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name} — ₹{p.sellingPrice ?? p.mrp ?? 0}
-                    </option>
-                  ))}
+                  {products.map((p) => {
+                    const pid = p._id || p.id || ""
+                    return (
+                      <option key={pid} value={pid}>
+                        {p.name} — ₹{p.sellingPrice ?? p.mrp ?? 0}
+                      </option>
+                    )
+                  })}
                 </select>
                 <Input
                   type="number"

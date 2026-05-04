@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useToast } from "@/hooks/use-toast"
 import { axiosInstance } from "@/lib/axios"
-import { Download, ChevronLeft, ChevronRight } from "lucide-react"
+import { Download, ChevronLeft, ChevronRight, PlusCircle } from "lucide-react"
 import { OrderDetailsDrawer } from "@/components/order-details-drawer"
+import Link from "next/link"
 
 interface Order {
   _id: string
@@ -184,9 +185,19 @@ export default function OrdersPage() {
     <AdminLayout>
       <div className="space-y-6 p-5 max-w-7xl mx-auto">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Order Management</h1>
-          <p className="text-muted-foreground mt-2">View and manage customer orders</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Order Management</h1>
+            <p className="text-muted-foreground mt-2">
+              View and manage customer orders. You can also create a manual order for phone or walk-in sales.
+            </p>
+          </div>
+          <Button asChild className="shrink-0 w-full sm:w-auto">
+            <Link href="/orders/create">
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Create manual order
+            </Link>
+          </Button>
         </div>
 
         {/* Search and Filter */}
